@@ -3,27 +3,26 @@ import type { PaymentRequired } from "@x402/core/types";
 import type { PayPublicConfig } from "../pay-public-config.js";
 import { buildPaidExampleUrl } from "../pay-public-config.js";
 import { validateBaseSepoliaPaymentRequirements } from "../payment-policy.js";
+import {
+  createPaymentQuote,
+  type PaymentQuote,
+} from "./pay-quote.js";
 import type { PaymentSummary } from "./pay-wallet-state.js";
 
 export type TermsLoadResult =
-  | { ok: true; summary: PaymentSummary }
+  | { ok: true; quote: PaymentQuote; summary: PaymentSummary }
   | { ok: false; reason: string };
-
-function decodeRequirements(headerValue: string) {
-  const decoded = decodePaymentRequiredHeader(headerValue) as PaymentRequired;
-  return decoded.accepts;
-}
 
 export async function loadAndValidatePaymentTerms(options: {
   fetchImpl: typeof fetch;
   origin: string;
   publicConfig: PayPublicConfig;
+  account: string;
+  chainId: number;
   queryValue?: string;
 }): Promise<TermsLoadResult> {
-  const url = buildPaidExampleUrl(
-    options.origin,
-    options.queryValue ?? "browser-demo",
-  );
+  const queryValue = options.queryValue ?? "browser-demo";
+  const url = buildPaidExampleUrl(options.origin, queryValue);
 
   let response: Response;
   try {
@@ -63,9 +62,11 @@ export async function loadAndValidatePaymentTerms(options: {
     };
   }
 
-  let requirements;
+  let paymentRequired: PaymentRequired;
   try {
-    requirements = decodeRequirements(paymentHeader);
+    paymentRequired = decodePaymentRequiredHeader(
+      paymentHeader,
+    ) as PaymentRequired;
   } catch {
     return {
       ok: false,
@@ -74,30 +75,26 @@ export async function loadAndValidatePaymentTerms(options: {
   }
 
   const validation = validateBaseSepoliaPaymentRequirements(
-    requirements,
+    paymentRequired.accepts,
     options.publicConfig.sellerAddress,
   );
   if (!validation.ok) {
     return validation;
   }
 
+  const quote = createPaymentQuote({
+    paymentRequired,
+    requirement: validation.requirement,
+    publicConfig: options.publicConfig,
+    account: options.account,
+    chainId: options.chainId,
+    requestUrl: url,
+    queryValue,
+  });
+
   return {
     ok: true,
-    summary: {
-      paying: "0.001 test USDC",
-      network: options.publicConfig.networkLabel,
-      service: options.publicConfig.paidRoute,
-      input: options.queryValue ?? "browser-demo",
-      sellerStatus: options.publicConfig.paymentReady
-        ? "verified"
-        : "placeholder",
-      tokenStatus: "verified",
-      amountStatus: "verified",
-      eip712Status: "verified",
-      timeoutStatus: "verified",
-      optionsCount: 1,
-      renewal: "none",
-      requestsAuthorized: 0,
-    },
+    quote,
+    summary: quote.summary,
   };
 }

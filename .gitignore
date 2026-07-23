@@ -8,7 +8,11 @@ src/generated/
 !.env.example
 !.env.buyer.example
 !.dev.vars.example
-wallet*
+wallet.json
+wallet.key
+wallet.pem
+wallet.*.json
+/wallets/
 *.key
 *.pem
 coverage/

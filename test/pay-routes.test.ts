@@ -28,13 +28,11 @@ describe("/pay browser preflight routes", () => {
     expect(html).toContain("No real money");
   });
 
-  it("includes no payment or signing control buttons", async () => {
+  it("includes gated payment controls without standalone Pay button", async () => {
     const app = createApp({ ...testAppOptions });
     const html = await (await app.request("http://localhost/pay")).text();
     expect(html).not.toMatch(/>\s*Pay\s*</i);
-    expect(html).not.toMatch(/>\s*Sign\s*</i);
-    expect(html).not.toMatch(/>\s*Purchase\s*</i);
-    expect(html).not.toMatch(/Submit Payment/i);
+    expect(html).toContain("Sign and Submit One Testnet Payment");
     expect(html).toContain("Connect Wallet");
     expect(html).toContain("Load and Validate Payment Terms");
   });
@@ -60,6 +58,7 @@ describe("/pay browser preflight routes", () => {
     expect(body).not.toContain("node:fs");
     expect(body).not.toContain("privateKeyToAccount");
     expect(body).not.toContain("wrapFetchWithPayment");
+    expect(body).toContain("createPaymentPayload");
   });
 
   it("serves same-origin /pay.css", async () => {

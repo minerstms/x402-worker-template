@@ -23,8 +23,8 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 
 ## Buyer safety
 
-- [ ] `/pay` read-only browser preflight matches the new route and query shape
-- [ ] Browser page cannot sign or submit payment in this milestone
+- [ ] `/pay` browser payment code exists but remains disabled while placeholder seller is configured
+- [ ] Browser page cannot sign or submit payment until `paymentReady: true`
 - [ ] Buyer URL guards for the new path and query shape (`src/buyer-guards.ts`)
 - [ ] `.env.buyer.example` `API_URL` and remote origin documentation
 - [ ] Buyer preflight and payment-path tests

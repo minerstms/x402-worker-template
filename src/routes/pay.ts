@@ -6,9 +6,6 @@ import { PAY_CSS, PAY_JS } from "../generated/pay-assets.js";
 export const PAY_CONTENT_SECURITY_POLICY =
   "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';";
 
-const FORBIDDEN_PAY_CONTROLS =
-  /(?:^|\s)(?:pay|sign|purchase|submit payment|retry payment|confirm payment)(?:\s|$)/i;
-
 export function buildPayPageHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -23,7 +20,7 @@ export function buildPayPageHtml(): string {
       <header class="panel">
         <h1>x402 Worker Payment Demo</h1>
         <p class="banner">BASE SEPOLIA TESTNET — No real money. No automatic renewal. One request only.</p>
-        <p class="muted">This page connects MetaMask, verifies Base Sepolia payment terms, and stops before any signature or payment submission.</p>
+        <p class="muted">This page validates Base Sepolia payment terms and supports one explicit MetaMask signature plus one payment request when a real seller is configured.</p>
       </header>
 
       <section class="panel" aria-labelledby="state-heading">
@@ -61,14 +58,38 @@ export function buildPayPageHtml(): string {
         <button id="connect-wallet" type="button">Connect Wallet</button>
         <button id="switch-network" type="button">Switch to Base Sepolia</button>
         <button id="load-terms" type="button">Load and Validate Payment Terms</button>
+        <button id="review-payment" class="secondary" type="button">Review Final Payment Confirmation</button>
+        <button id="sign-and-submit" type="button" disabled>Sign and Submit One Testnet Payment</button>
         <button id="reset" class="secondary" type="button">Reset</button>
       </section>
 
       <section id="summary-panel" class="panel hidden" aria-labelledby="summary-heading">
         <h2 id="summary-heading">Payment summary</h2>
         <ul id="summary-list" class="summary-list"></ul>
-        <p class="banner banner-danger">Signing and payment submission are disabled in this phase.</p>
       </section>
+
+      <section id="confirmation-panel" class="panel hidden banner" aria-labelledby="confirmation-heading">
+        <h2 id="confirmation-heading">Final confirmation</h2>
+        <ul class="summary-list">
+          <li>BASE SEPOLIA TESTNET</li>
+          <li>0.001 test USDC</li>
+          <li>Service: /v1/example</li>
+          <li>Input: browser-demo</li>
+          <li>Token verified</li>
+          <li>Seller verified</li>
+          <li>Network verified</li>
+          <li>EIP-712 domain verified</li>
+          <li>Timeout verified</li>
+          <li>Exactly one payment option</li>
+          <li>No subscription</li>
+          <li>No automatic renewal</li>
+          <li>One request only</li>
+          <li>One wallet signature will be requested</li>
+          <li>This authorizes a testnet token transfer</li>
+        </ul>
+      </section>
+
+      <section id="result-panel" class="panel hidden" aria-live="polite"></section>
 
       <p id="status" class="status panel" role="status" aria-live="polite"></p>
     </main>
@@ -87,9 +108,6 @@ export function createPayConfigHandler(config: ResolvedConfig) {
 
 export function payPageHandler(c: Context) {
   const html = buildPayPageHtml();
-  if (FORBIDDEN_PAY_CONTROLS.test(html)) {
-    return c.text("Pay page misconfigured.", 500);
-  }
   return c.html(html, 200, {
     "Content-Security-Policy": PAY_CONTENT_SECURITY_POLICY,
     "Cache-Control": "no-store",

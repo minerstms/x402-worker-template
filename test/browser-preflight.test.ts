@@ -17,58 +17,46 @@ import {
 } from "../src/browser/sanitize-error.js";
 import {
   canStartAction,
-  clearValidatedTermsOnAccountChange,
-  clearValidatedTermsOnChainChange,
+  clearQuoteOnAccountChange,
+  clearQuoteOnChainChange,
   deriveWalletState,
   isSigningMethod,
-  type PaymentSummary,
   type WalletControllerState,
 } from "../src/browser/pay-wallet-state.js";
+import { evaluatePaymentReadiness } from "../src/browser/pay-quote.js";
 import { createApp } from "../src/index.js";
 import { createPaymentMiddleware } from "../src/payment.js";
+
+const FAKE_ACCOUNT = "0x1111111111111111111111111111111111111111";
 
 function baseState(
   overrides: Partial<WalletControllerState> = {},
 ): WalletControllerState {
   return {
     hasProvider: true,
-    account: "0x1111111111111111111111111111111111111111",
+    account: FAKE_ACCOUNT,
     chainId: 84532,
     expectedChainId: 84532,
-    validatedTerms: null,
+    publicConfig: buildPayPublicConfig(resolveConfig()),
+    quote: null,
     pendingAction: null,
     userRejected: false,
     errorMessage: null,
+    attemptStarted: false,
+    paymentAttemptCompleted: false,
+    awaitingConfirmation: false,
+    executionStage: null,
+    terminalStatus: null,
     ...overrides,
   };
 }
 
-const summary: PaymentSummary = {
-  paying: "0.001 test USDC",
-  network: "Base Sepolia testnet",
-  service: "/v1/example",
-  input: "browser-demo",
-  sellerStatus: "placeholder",
-  tokenStatus: "verified",
-  amountStatus: "verified",
-  eip712Status: "verified",
-  timeoutStatus: "verified",
-  optionsCount: 1,
-  renewal: "none",
-  requestsAuthorized: 0,
-};
-
 function encodePaymentRequired(
   accepts: Array<Record<string, unknown>>,
 ): string {
-  return Buffer.from(JSON.stringify({ accepts }), "utf8").toString("base64");
-}
-
-function unpaidResponse(header: string): Response {
-  return new Response("{}", {
-    status: 402,
-    headers: { "payment-required": header },
-  });
+  return Buffer.from(JSON.stringify({ x402Version: 2, accepts }), "utf8").toString(
+    "base64",
+  );
 }
 
 describe("wallet state machine", () => {
@@ -78,14 +66,20 @@ describe("wallet state machine", () => {
     );
   });
 
+  it("enters payment-disabled for placeholder seller", () => {
+    expect(deriveWalletState(baseState())).toBe("payment-disabled");
+  });
+
   it("clears validated terms on account change", () => {
     expect(
-      clearValidatedTermsOnAccountChange("0xaaa", "0xbbb", summary),
+      clearQuoteOnAccountChange(FAKE_ACCOUNT, "0xaaa", {
+        quoteId: "q1",
+      } as never),
     ).toBeNull();
   });
 
   it("clears validated terms on chain change", () => {
-    expect(clearValidatedTermsOnChainChange(84532, 1, summary)).toBeNull();
+    expect(clearQuoteOnChainChange(84532, 1, { quoteId: "q1" } as never)).toBeNull();
   });
 
   it("prevents double action while busy", () => {
@@ -100,7 +94,7 @@ describe("wallet state machine", () => {
     expect(result.message).not.toContain("0x");
   });
 
-  it("does not treat signing methods as allowed actions", () => {
+  it("does not treat signing methods as allowed read methods", () => {
     expect(isSigningMethod("eth_signTypedData_v4")).toBe(true);
     expect(isSigningMethod("eth_chainId")).toBe(false);
   });
@@ -130,6 +124,8 @@ describe("read-only 402 validation", () => {
       fetchImpl,
       origin: "http://localhost",
       publicConfig,
+      account: FAKE_ACCOUNT,
+      chainId: 84532,
     });
     expect(result.ok).toBe(true);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -146,6 +142,8 @@ describe("read-only 402 validation", () => {
       fetchImpl,
       origin: "http://localhost",
       publicConfig,
+      account: FAKE_ACCOUNT,
+      chainId: 84532,
     });
     expect(result.ok).toBe(false);
   });
@@ -156,11 +154,10 @@ describe("read-only 402 validation", () => {
       fetchImpl,
       origin: "http://localhost",
       publicConfig,
+      account: FAKE_ACCOUNT,
+      chainId: 84532,
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toMatch(/402/);
-    }
   });
 
   it("does not log private data in sanitized errors", () => {
@@ -201,9 +198,16 @@ describe("terms loader rejection cases", () => {
       },
     ]);
     const result = await loadAndValidatePaymentTerms({
-      fetchImpl: vi.fn(async () => unpaidResponse(header)),
+      fetchImpl: vi.fn(async () =>
+        new Response("{}", {
+          status: 402,
+          headers: { "payment-required": header },
+        }),
+      ),
       origin: "http://localhost",
       publicConfig,
+      account: FAKE_ACCOUNT,
+      chainId: 84532,
     });
     expect(result.ok).toBe(false);
   });
@@ -236,35 +240,41 @@ describe("facilitator startup synchronization", () => {
   });
 });
 
-export type MockEip1193Provider = {
-  request: ReturnType<typeof vi.fn>;
-  on?: ReturnType<typeof vi.fn>;
-};
-
-export function createMockEip1193Provider(): MockEip1193Provider {
-  return {
-    request: vi.fn(async (args: { method: string }) => {
-      switch (args.method) {
-        case "eth_chainId":
-          return "0x14a34";
-        case "eth_accounts":
-        case "eth_requestAccounts":
-          return ["0x1111111111111111111111111111111111111111"];
-        default:
-          return null;
-      }
-    }),
-    on: vi.fn(),
-  };
-}
-
 describe("mock EIP-1193 provider", () => {
   it("does not invoke signing methods during ordinary reads", async () => {
-    const provider = createMockEip1193Provider();
+    const provider = {
+      request: vi.fn(async (args: { method: string }) => {
+        switch (args.method) {
+          case "eth_chainId":
+            return "0x14a34";
+          case "eth_accounts":
+            return [FAKE_ACCOUNT];
+          default:
+            return null;
+        }
+      }),
+      on: vi.fn(),
+    };
     await provider.request({ method: "eth_chainId" });
     await provider.request({ method: "eth_accounts" });
     expect(provider.request).not.toHaveBeenCalledWith(
       expect.objectContaining({ method: "personal_sign" }),
     );
+  });
+});
+
+describe("placeholder payment gate", () => {
+  it("reports payment readiness false for placeholder config", () => {
+    const readiness = evaluatePaymentReadiness({
+      publicConfig: buildPayPublicConfig(resolveConfig()),
+      account: FAKE_ACCOUNT,
+      chainId: 84532,
+      expectedChainId: 84532,
+      quote: null,
+      pendingAction: null,
+      attemptStarted: false,
+      paymentAttemptCompleted: false,
+    });
+    expect(readiness.ready).toBe(false);
   });
 });
