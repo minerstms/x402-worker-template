@@ -1,0 +1,13 @@
+# Local Wrangler secrets / vars example.
+# Copy to .dev.vars for local development. Never commit .dev.vars.
+#
+# X402_NETWORK is runtime-locked to Base Sepolia (eip155:84532).
+# X402_PAY_TO_ADDRESS is the dead address placeholder below.
+# Do NOT attempt payment while the dead address is configured.
+# Replace it only in a later supervised Cloudflare configuration step with a
+# real public seller receiving address. Never commit that address to Git.
+
+X402_NETWORK=eip155:84532
+X402_PRICE_USD=0.001
+X402_FACILITATOR_URL=https://x402.org/facilitator
+X402_PAY_TO_ADDRESS=0x000000000000000000000000000000000000dEaD

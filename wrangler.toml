@@ -1,0 +1,10 @@
+name = "x402-worker-template"
+main = "src/index.ts"
+compatibility_date = "2025-07-21"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+X402_NETWORK = "eip155:84532"
+X402_PRICE_USD = "0.001"
+X402_FACILITATOR_URL = "https://x402.org/facilitator"
+X402_PAY_TO_ADDRESS = "0x000000000000000000000000000000000000dEaD"

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+!.env.buyer.example
+!.dev.vars.example
+wallet*
+*.key
+*.pem
+coverage/
+*.log
+body402.txt
+headers402.txt
