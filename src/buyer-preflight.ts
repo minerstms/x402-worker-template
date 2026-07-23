@@ -18,9 +18,9 @@ import {
   BUYER_FETCH_REDIRECT,
   createBaseSepoliaPaymentPolicy,
   evaluateBuyerGuards,
-  matchesBaseSepoliaPaymentTerms,
   parseBoolFlag,
   selectBaseSepoliaPaymentRequirement,
+  validateBaseSepoliaPaymentRequirements,
 } from "./buyer-guards.js";
 
 export type PreflightStageStatus = "PASS" | "FAIL" | "SKIP" | "NOT_ATTEMPTED";
@@ -187,15 +187,11 @@ export async function runBuyerPreflight(
   }
 
   const expectedPayTo = expectedPayToAddress!.trim();
-  const matching = requirements.filter((requirement) =>
-    matchesBaseSepoliaPaymentTerms(requirement, expectedPayTo),
+  const validation = validateBaseSepoliaPaymentRequirements(
+    requirements,
+    expectedPayTo,
   );
-  const paymentTermsOk =
-    matching.length === 1 &&
-    requirements.length === 1 &&
-    matching.every((requirement) =>
-      matchesBaseSepoliaPaymentTerms(requirement, expectedPayTo),
-    );
+  const paymentTermsOk = validation.ok;
 
   stages.push(
     stageResult(
@@ -207,8 +203,8 @@ export async function runBuyerPreflight(
     ),
   );
 
-  const prerequisite = matching[0]
-    ? paymentPayloadPrerequisites(matching[0])
+  const prerequisite = validation.ok
+    ? paymentPayloadPrerequisites(validation.requirement)
     : {
         ok: false as const,
         reason: "No acceptable payment requirement available for prerequisite check.",

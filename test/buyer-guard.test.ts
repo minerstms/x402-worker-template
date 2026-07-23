@@ -288,12 +288,18 @@ describe("Base Sepolia payment policy", () => {
     expect(filtered).toHaveLength(0);
   });
 
-  it("rejects maxTimeoutSeconds above 300", () => {
+  it("rejects maxTimeoutSeconds other than 300", () => {
     const filtered = applyBaseSepoliaPaymentPolicy(
       [requirement({ maxTimeoutSeconds: 301 })],
       VALID_PAY_TO,
     );
     expect(filtered).toHaveLength(0);
+    expect(
+      applyBaseSepoliaPaymentPolicy(
+        [requirement({ maxTimeoutSeconds: 299 })],
+        VALID_PAY_TO,
+      ),
+    ).toHaveLength(0);
   });
 
   it("rejects alternate scheme", () => {

@@ -1,17 +1,28 @@
-import type {
-  PaymentPolicy,
-  SelectPaymentRequirements,
-} from "@x402/core/client";
-import type { PaymentRequirements } from "@x402/core/types";
 import {
-  ALLOWED_SELLER_NETWORK,
+  applyBaseSepoliaPaymentPolicy,
+  BASE_SEPOLIA,
   BASE_SEPOLIA_MAX_TIMEOUT_SECONDS,
   BASE_SEPOLIA_PAYMENT_AMOUNT,
   BASE_SEPOLIA_USDC_ASSET,
-} from "./config.js";
+  createBaseSepoliaPaymentPolicy,
+  matchesBaseSepoliaPaymentTerms,
+  requirement,
+  selectBaseSepoliaPaymentRequirement,
+  validateBaseSepoliaPaymentRequirements,
+} from "./payment-policy.js";
 
-export const BASE_SEPOLIA = ALLOWED_SELLER_NETWORK;
-export { BASE_SEPOLIA_USDC_ASSET, BASE_SEPOLIA_PAYMENT_AMOUNT, BASE_SEPOLIA_MAX_TIMEOUT_SECONDS };
+export {
+  applyBaseSepoliaPaymentPolicy,
+  BASE_SEPOLIA,
+  BASE_SEPOLIA_MAX_TIMEOUT_SECONDS,
+  BASE_SEPOLIA_PAYMENT_AMOUNT,
+  BASE_SEPOLIA_USDC_ASSET,
+  createBaseSepoliaPaymentPolicy,
+  matchesBaseSepoliaPaymentTerms,
+  requirement,
+  selectBaseSepoliaPaymentRequirement,
+  validateBaseSepoliaPaymentRequirements,
+};
 export const BUYER_FETCH_REDIRECT = "error" as const;
 export const PRIVATE_KEY_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 export const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
@@ -275,62 +286,3 @@ export function evaluateBuyerGuards(
   return { ok: true };
 }
 
-export function matchesBaseSepoliaPaymentTerms(
-  requirement: PaymentRequirements,
-  expectedPayToAddress: string,
-): boolean {
-  return (
-    requirement.scheme === "exact" &&
-    requirement.network === BASE_SEPOLIA &&
-    requirement.amount === BASE_SEPOLIA_PAYMENT_AMOUNT &&
-    requirement.asset.toLowerCase() === BASE_SEPOLIA_USDC_ASSET.toLowerCase() &&
-    requirement.payTo.toLowerCase() === expectedPayToAddress.toLowerCase() &&
-    requirement.maxTimeoutSeconds <= BASE_SEPOLIA_MAX_TIMEOUT_SECONDS
-  );
-}
-
-export function createBaseSepoliaPaymentPolicy(
-  expectedPayToAddress: string,
-): PaymentPolicy {
-  return (_version, requirements) =>
-    requirements.filter((requirement) =>
-      matchesBaseSepoliaPaymentTerms(requirement, expectedPayToAddress),
-    );
-}
-
-export const selectBaseSepoliaPaymentRequirement: SelectPaymentRequirements = (
-  _version,
-  requirements,
-) => {
-  if (requirements.length === 0) {
-    throw new Error(
-      "No payment requirement matched the allowed Base Sepolia terms.",
-    );
-  }
-  return requirements[0]!;
-};
-
-export function applyBaseSepoliaPaymentPolicy(
-  requirements: PaymentRequirements[],
-  expectedPayToAddress: string,
-): PaymentRequirements[] {
-  return createBaseSepoliaPaymentPolicy(expectedPayToAddress)(
-    2,
-    requirements,
-  );
-}
-
-export function requirement(
-  overrides: Partial<PaymentRequirements> = {},
-): PaymentRequirements {
-  return {
-    scheme: "exact",
-    network: BASE_SEPOLIA,
-    amount: BASE_SEPOLIA_PAYMENT_AMOUNT,
-    asset: BASE_SEPOLIA_USDC_ASSET,
-    payTo: "0x000000000000000000000000000000000000dEaD",
-    maxTimeoutSeconds: 300,
-    extra: {},
-    ...overrides,
-  };
-}

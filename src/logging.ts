@@ -11,7 +11,6 @@ export type SafeLogFields = {
   method?: string;
   status?: number;
   durationMs?: number;
-  site?: string;
   upstreamStatus?: number;
   paymentOutcome?: string;
   settlementTxHash?: string;

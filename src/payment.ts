@@ -4,8 +4,9 @@ import type { Network } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import {
-  paymentMiddleware,
+  paymentMiddlewareFromHTTPServer,
   x402ResourceServer,
+  x402HTTPResourceServer,
 } from "@x402/hono";
 import type { MiddlewareHandler } from "hono";
 import {
@@ -212,13 +213,33 @@ export function createPaymentMiddleware(
     "GET /v1/example": buildExampleRouteConfig(config),
   };
 
-  const syncFacilitatorOnStart = options.syncFacilitatorOnStart ?? true;
-
-  return paymentMiddleware(
-    routes,
-    resourceServer,
+  const syncFacilitatorOnStart = options.syncFacilitatorOnStart ?? false;
+  const httpServer = new x402HTTPResourceServer(resourceServer, routes);
+  const baseMiddleware = paymentMiddlewareFromHTTPServer(
+    httpServer,
     undefined,
     undefined,
     syncFacilitatorOnStart,
   );
+
+  if (syncFacilitatorOnStart) {
+    return baseMiddleware;
+  }
+
+  let localInitPromise: Promise<void> | null = null;
+  return async (c, next) => {
+    if (c.req.path === "/v1/example") {
+      if (!localInitPromise) {
+        localInitPromise = httpServer.initialize().then(
+          () => undefined,
+          (error) => {
+            localInitPromise = null;
+            throw error;
+          },
+        );
+      }
+      await localInitPromise;
+    }
+    return baseMiddleware(c, next);
+  };
 }

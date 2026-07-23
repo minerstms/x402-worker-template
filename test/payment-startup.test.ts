@@ -37,7 +37,7 @@ function createHangingFacilitatorClient(): FacilitatorClient {
 }
 
 const productionLikeOptions = {
-  syncFacilitatorOnStart: true,
+  syncFacilitatorOnStart: false,
   useStaticFacilitator: false,
   env: {
     X402_PAY_TO_ADDRESS: DEFAULT_PAY_TO,
@@ -67,7 +67,31 @@ describe("facilitator startup and unpaid 402", () => {
     }
   });
 
-  it("waits on facilitator discovery when sync is enabled with a hanging client", async () => {
+  it("defaults startup sync to disabled for unpaid 402", async () => {
+    const hangingFetch = vi.fn(() => new Promise(() => {}));
+    vi.stubGlobal("fetch", hangingFetch);
+
+    try {
+      const app = createApp({
+        useStaticFacilitator: false,
+        env: {
+          X402_PAY_TO_ADDRESS: DEFAULT_PAY_TO,
+        },
+      });
+
+      const res = await app.request(
+        "http://localhost/v1/example?value=hello",
+        { headers: { Accept: "application/json" } },
+      );
+
+      expect(res.status).toBe(402);
+      expect(hangingFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("waits on facilitator discovery when sync is explicitly enabled with a hanging client", async () => {
     const facilitator = createHangingFacilitatorClient();
     const app = createApp({
       syncFacilitatorOnStart: true,

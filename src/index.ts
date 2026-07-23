@@ -7,6 +7,12 @@ import { buildOpenApiDocument } from "./openapi.js";
 import { createPaymentMiddleware } from "./payment.js";
 import { healthHandler } from "./routes/health.js";
 import {
+  createPayConfigHandler,
+  payCssHandler,
+  payJsHandler,
+  payPageHandler,
+} from "./routes/pay.js";
+import {
   createExampleHandler,
   validateExampleQuery,
   type ExampleDeps,
@@ -44,6 +50,10 @@ export function createApp(options: CreateAppOptions = {}) {
   });
 
   app.get("/health", healthHandler);
+  app.get("/pay/config", createPayConfigHandler(config));
+  app.get("/pay", payPageHandler);
+  app.get("/pay.js", payJsHandler);
+  app.get("/pay.css", payCssHandler);
   app.get("/openapi.json", (c) => {
     return c.json(buildOpenApiDocument(config));
   });
@@ -52,7 +62,7 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.use(
     createPaymentMiddleware(config, {
-      syncFacilitatorOnStart: options.syncFacilitatorOnStart ?? true,
+      syncFacilitatorOnStart: options.syncFacilitatorOnStart ?? false,
       useStaticFacilitator: options.useStaticFacilitator ?? false,
       facilitatorClient: options.facilitatorClient,
     }),
@@ -113,7 +123,7 @@ export default {
     if (!app) {
       app = createApp({
         env,
-        syncFacilitatorOnStart: true,
+        syncFacilitatorOnStart: false,
         useStaticFacilitator: false,
       });
       appCache.set(key, app);

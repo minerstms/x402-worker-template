@@ -23,6 +23,8 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 
 ## Buyer safety
 
+- [ ] `/pay` read-only browser preflight matches the new route and query shape
+- [ ] Browser page cannot sign or submit payment in this milestone
 - [ ] Buyer URL guards for the new path and query shape (`src/buyer-guards.ts`)
 - [ ] `.env.buyer.example` `API_URL` and remote origin documentation
 - [ ] Buyer preflight and payment-path tests
@@ -40,6 +42,7 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 - [ ] Validation tests for new inputs
 - [ ] Unpaid 402 tests (handler must not run)
 - [ ] Payment requirement tests (exactly one Base Sepolia option)
+- [ ] Browser `/pay` preflight tests (CSP, config, wallet state machine, no signing)
 - [ ] Buyer guard tests for local and remote URLs
 - [ ] README describes the new domain honestly (no fabricated data)
 
@@ -49,6 +52,7 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 - [ ] Deploy to workers.dev with seller address via Cloudflare vars/secrets only
 - [ ] `/health` and `/openapi.json` return 200
 - [ ] Valid unpaid request returns HTTP 402 promptly with expected payment terms
+- [ ] `/pay` loads and reports placeholder seller as not payment-ready
 - [ ] Read-only `npm run buyer:diagnose` passes against deployed origin
 - [ ] Exactly one controlled Base Sepolia test-USDC payment succeeds end-to-end
 

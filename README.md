@@ -17,6 +17,8 @@ A reusable starting point for paid HTTP APIs on Cloudflare Workers. It preserves
 | `GET /health` | Free | Liveness check |
 | `GET /openapi.json` | Free | OpenAPI document |
 | `GET /v1/example?value=<text>` | Paid (x402) | Deterministic example response |
+| `GET /pay` | Free | Read-only MetaMask payment preflight (no signing or payment) |
+| `GET /pay/config` | Free | Public Base Sepolia payment configuration for the browser page |
 
 Payment defaults (overridable via local env): Base Sepolia (`eip155:84532`), **0.001** test USDC (`1000` atomic units).
 
@@ -62,12 +64,15 @@ Read-only preflight (no signing, no payment):
 npm run buyer:diagnose
 ```
 
+Browser preflight at `/pay` can connect MetaMask and validate Base Sepolia payment terms against `/pay/config`. It cannot sign, submit payment, or move test USDC. The tracked seller remains a dead placeholder until configured locally in ignored files. Browser signing is a later Red Lane milestone. Mainnet remains unsupported. Do not infer that a real or test payment can succeed from the preview page alone.
+
 ## Commands
 
 ```bash
 npm run test          # Vitest unit/integration tests
+npm run build:browser # Build same-origin /pay.js bundle
 npm run typecheck     # TypeScript --noEmit
-npm run build         # Wrangler deploy dry-run → dist/
+npm run build         # Browser build + Wrangler deploy dry-run → dist/
 npx wrangler deploy --dry-run   # Bundle/check without deploying
 ```
 

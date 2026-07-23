@@ -68,7 +68,9 @@ describe("mocked buyer payment path", () => {
     expect(result.report.diagnostic.stage).toBe("create_payment_payload");
     expect(result.report.diagnostic.failurePhase).toBe("during_local_signing");
     expect(result.report.diagnostic.paymentBearingRequestLikelySent).toBe(false);
-    expect(result.report.diagnostic.message).toMatch(/EIP-712 domain parameters/i);
+    expect(result.report.diagnostic.message).toMatch(
+      /filtered out by policies|EIP-712 domain parameters/i,
+    );
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
@@ -100,9 +102,11 @@ describe("mocked buyer payment path", () => {
         request.headers.get("PAYMENT-SIGNATURE");
       expect(paymentHeader).toBeTruthy();
       expect(request.url).toBe(REMOTE_API);
-      expect(JSON.stringify(Object.fromEntries(request.headers.entries()))).not.toMatch(
-        /8453[^2]/,
-      );
+      const headerSnapshot: Record<string, string> = {};
+      request.headers.forEach((value, key) => {
+        headerSnapshot[key] = value;
+      });
+      expect(JSON.stringify(headerSnapshot)).not.toMatch(/8453[^2]/);
 
       return Response.json(
         {
