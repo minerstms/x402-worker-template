@@ -9,6 +9,7 @@ import {
   sanitizeProviderErrorMessage,
 } from "./sanitize-error.js";
 import { loadAndValidatePaymentTerms } from "./terms-loader.js";
+import { browserFetch } from "./browser-fetch.js";
 import {
   canStartAction,
   clearQuoteOnAccountChange,
@@ -114,7 +115,7 @@ export class PayPageController {
 
   constructor(deps: PayPageControllerDeps = {}) {
     const root = deps.root ?? document;
-    this.fetchImpl = deps.fetchImpl ?? fetch;
+    this.fetchImpl = deps.fetchImpl ?? browserFetch;
     this.createPaymentClients =
       deps.createPaymentClients ?? createBrowserPaymentClients;
     this.executePayment = deps.executePayment ?? executeBoundPayment;
