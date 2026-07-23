@@ -19,6 +19,7 @@ describe("/pay browser preflight routes", () => {
     const res = await app.request("http://localhost/pay");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
 
   it("includes TESTNET warnings", async () => {
@@ -52,6 +53,7 @@ describe("/pay browser preflight routes", () => {
     const res = await app.request("http://localhost/pay.js");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("javascript");
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     const body = await res.text();
     expect(body).toBe(PAY_JS);
     expect(body).not.toContain("buyer-env");
@@ -66,6 +68,7 @@ describe("/pay browser preflight routes", () => {
     const res = await app.request("http://localhost/pay.css");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/css");
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
     expect((await res.text()).length).toBeGreaterThan(0);
   });
 

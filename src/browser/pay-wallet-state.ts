@@ -64,6 +64,25 @@ export type WalletControllerState = {
   terminalStatus: "success" | "potentially-submitted" | null;
 };
 
+export function deriveValidationStateLabel(
+  state: WalletControllerState,
+  walletState: WalletState,
+): string {
+  if (walletState === "success") {
+    return "settled";
+  }
+  if (walletState === "potentially-submitted") {
+    return "uncertain";
+  }
+  if (!state.quote) {
+    return state.pendingAction === "load-terms" ? "loading" : "not loaded";
+  }
+  if (state.awaitingConfirmation) {
+    return "awaiting confirmation";
+  }
+  return "validated";
+}
+
 export function deriveWalletState(state: WalletControllerState): WalletState {
   const config = state.publicConfig;
   if (!state.hasProvider) {

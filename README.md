@@ -8,7 +8,14 @@ A reusable starting point for paid HTTP APIs on Cloudflare Workers. It preserves
 
 **Verified origin:** `x402-usgs-river-snapshot@f3d8f24` (Git tag `payment-verified-base-sepolia-v1`)
 
-**Verification level:** one successful Base Sepolia test-USDC payment and settlement against the river reference Worker. This template generalizes that code path; it does not include mainnet behavior.
+**Verification level:**
+
+- Node CLI Base Sepolia test-USDC payment verified against the river reference Worker
+- Browser MetaMask Base Sepolia test-USDC payment verified on 2026-07-23 against the dedicated demonstration Worker `x402-worker-template-testnet`
+
+See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md) for the live browser proof record.
+
+Mainnet and real USDC are not supported. The template is **not yet clone-ready**.
 
 ## Routes
 
@@ -17,7 +24,7 @@ A reusable starting point for paid HTTP APIs on Cloudflare Workers. It preserves
 | `GET /health` | Free | Liveness check |
 | `GET /openapi.json` | Free | OpenAPI document |
 | `GET /v1/example?value=<text>` | Paid (x402) | Deterministic example response |
-| `GET /pay` | Free | MetaMask payment preflight and hard-gated payment flow (disabled while placeholder seller is configured) |
+| `GET /pay` | Free | MetaMask payment page (disabled while placeholder seller is configured in tracked source) |
 | `GET /pay/config` | Free | Public Base Sepolia payment configuration for the browser page |
 
 Payment defaults (overridable via local env): Base Sepolia (`eip155:84532`), **0.001** test USDC (`1000` atomic units).
@@ -64,9 +71,16 @@ Read-only preflight (no signing, no payment):
 npm run buyer:diagnose
 ```
 
-Browser preflight at `/pay` connects MetaMask, validates Base Sepolia payment terms, and includes hard-gated payment execution code. The tracked seller remains a dead placeholder, so signing and payment submission stay disabled in the default template configuration. No live browser wallet payment has been completed yet.
+Browser payment at `/pay` uses MetaMask on Base Sepolia. **No customer private key is required** for browser customers. The tracked seller remains a dead placeholder, so signing and payment submission stay disabled in the default local template configuration.
 
-A real seller runtime configuration, deployment, and browser-signed Base Sepolia payment each require separate Red Lane approval. Mainnet remains unsupported. One explicit click authorizes at most one testnet payment attempt when payment is enabled. Uncertain submission must never be retried automatically.
+The dedicated demonstration Worker `x402-worker-template-testnet` has a verified browser payment on 2026-07-23:
+
+- Buyer balance decreased by **0.001** test USDC
+- Seller balance increased by **0.001** test USDC
+
+Another live payment is not required for the current milestone.
+
+Mainnet remains unsupported. One explicit click authorizes at most one testnet payment attempt when payment is enabled. Uncertain submission must never be retried automatically.
 
 ## Commands
 
@@ -87,7 +101,7 @@ When creating a new project from this template, see [TEMPLATE_CHECKLIST.md](./TE
 - Do not deploy, configure Cloudflare secrets, or run paid buyer commands without explicit authorization.
 - Do not commit private keys, seller addresses, or `.dev.vars` / `.env.buyer`.
 - Do not enable Base mainnet or change the locked Base Sepolia payment terms without a deliberate security review.
-- Verify unpaid HTTP 402 and one controlled testnet payment after deployment before treating a clone as production-ready.
+- A fresh tracked-source clone/rename drill is still required before calling the template clone-ready.
 
 ## Provenance
 

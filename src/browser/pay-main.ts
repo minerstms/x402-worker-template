@@ -10,11 +10,13 @@ import {
 } from "./sanitize-error.js";
 import { loadAndValidatePaymentTerms } from "./terms-loader.js";
 import { browserFetch } from "./browser-fetch.js";
+import { renderPaymentReceipt, buildReceiptInput } from "./pay-receipt.js";
 import {
   canStartAction,
   clearQuoteOnAccountChange,
   clearQuoteOnChainChange,
   clearQuoteOnConfigChange,
+  deriveValidationStateLabel,
   deriveWalletState,
   invalidatePaymentSession,
   resetWalletControllerState,
@@ -358,6 +360,7 @@ export class PayPageController {
     if (result.ok) {
       this.state.terminalStatus = "success";
       this.state.executionStage = null;
+      this.state.awaitingConfirmation = false;
       this.state.errorMessage = null;
       this.renderSuccess(result.settlement, result.paidBody);
       this.render();
@@ -386,35 +389,30 @@ export class PayPageController {
     this.render();
   }
 
-  private renderSuccess(settlement: { transactionRef: string | null; explorerUrl: string | null }, paidBody: unknown): void {
-    this.resultPanel.classList.remove("hidden");
-    this.resultPanel.textContent = "";
-    const heading = document.createElement("h2");
-    heading.textContent = "Payment succeeded";
-    this.resultPanel.appendChild(heading);
-    const summary = document.createElement("p");
-    summary.textContent = "Paid API result received.";
-    this.resultPanel.appendChild(summary);
-    if (settlement.transactionRef) {
-      const tx = document.createElement("p");
-      tx.textContent = `Transaction reference: ${settlement.transactionRef}`;
-      this.resultPanel.appendChild(tx);
+  private renderSuccess(
+    settlement: {
+      transactionRef: string | null;
+      explorerUrl: string | null;
+      success: true;
+      paidResult: unknown;
+      networkVerified: boolean;
+    },
+    paidBody: unknown,
+  ): void {
+    if (!this.state.quote) {
+      return;
     }
-    if (settlement.explorerUrl) {
-      const link = document.createElement("a");
-      link.href = settlement.explorerUrl;
-      link.textContent = "View on Base Sepolia explorer";
-      link.rel = "noopener noreferrer";
-      this.resultPanel.appendChild(link);
-    }
-    if (paidBody && typeof paidBody === "object") {
-      const body = paidBody as { success?: boolean; input?: string };
-      if (body.success === true && typeof body.input === "string") {
-        const input = document.createElement("p");
-        input.textContent = `Service input: ${body.input}`;
-        this.resultPanel.appendChild(input);
-      }
-    }
+    renderPaymentReceipt(
+      this.resultPanel,
+      buildReceiptInput({
+        quote: this.state.quote,
+        paidBody,
+        settlement: {
+          ...settlement,
+          paidResult: paidBody,
+        },
+      }),
+    );
   }
 
   render(): void {
@@ -438,18 +436,18 @@ export class PayPageController {
         : this.state.chainId === this.state.expectedChainId
           ? "Base Sepolia testnet"
           : "wrong network";
-    this.validationStateEl.textContent = this.state.quote
-      ? this.state.awaitingConfirmation
-        ? "awaiting confirmation"
-        : "validated"
-      : this.state.pendingAction === "load-terms"
-        ? "loading"
-        : "not loaded";
-    this.sellerStateEl.textContent = config
-      ? config.paymentReady
-        ? "verified seller configured"
-        : "placeholder seller — payment disabled"
-      : "unknown";
+    this.validationStateEl.textContent = deriveValidationStateLabel(
+      this.state,
+      walletState,
+    );
+    this.sellerStateEl.textContent =
+      walletState === "success"
+        ? "verified"
+        : config
+          ? config.paymentReady
+            ? "verified seller configured"
+            : "placeholder seller — payment disabled"
+          : "unknown";
 
     this.connectButton.disabled = !canStartAction(this.state, "connect");
     this.switchButton.disabled = !canStartAction(this.state, "switch-network");
@@ -489,10 +487,18 @@ export class PayPageController {
       this.summaryList.innerHTML = "";
     }
 
-    if (this.state.awaitingConfirmation && readiness.ready) {
+    if (this.state.awaitingConfirmation && readiness.ready && walletState !== "success") {
       this.confirmationPanel.classList.remove("hidden");
     } else {
       this.confirmationPanel.classList.add("hidden");
+    }
+
+    if (walletState === "success") {
+      this.connectButton.disabled = true;
+      this.switchButton.disabled = true;
+      this.loadButton.disabled = true;
+      this.confirmButton.disabled = true;
+      this.payButton.disabled = true;
     }
 
     const accountTarget = document.getElementById("account-display");
@@ -501,9 +507,12 @@ export class PayPageController {
       accountTarget.textContent = this.state.account ? "connected" : "not connected";
     }
     if (sellerTarget) {
-      sellerTarget.textContent = config?.paymentReady
-        ? "verified"
-        : "placeholder / payment disabled";
+      sellerTarget.textContent =
+        walletState === "success"
+          ? "verified"
+          : config?.paymentReady
+            ? "verified"
+            : "placeholder / payment disabled";
     }
   }
 
