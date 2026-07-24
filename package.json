@@ -2,6 +2,7 @@
   "name": "x402-worker-template",
   "type": "module",
   "private": true,
+  "packageManager": "npm@11.13.0",
   "description": "Payment-verified Cloudflare Worker template using Hono and x402 v2 on Base Sepolia.",
   "engines": {
     "node": "22.20.1",
@@ -24,7 +25,15 @@
     "cf-typegen": "wrangler types",
     "buy": "tsx scripts/buy.ts",
     "buyer:diagnose": "tsx scripts/buyer-diagnose.ts",
-    "verify:archive": "tsx scripts/verify-release-archive.ts"
+    "verify:archive": "tsx scripts/verify-release-archive.ts",
+    "security:scan:tracked": "node scripts/security-scan.mjs --tracked",
+    "security:scan:history": "node scripts/security-scan.mjs --history",
+    "security:scan:all": "node scripts/security-scan.mjs --all",
+    "check:dependencies": "node scripts/check-dependency-pins.mjs",
+    "check:docs": "node scripts/check-public-docs.mjs",
+    "check:license": "node scripts/check-license.mjs",
+    "release:check": "node scripts/release-check.mjs",
+    "release:archive": "node scripts/create-safe-archive.mjs"
   },
   "dependencies": {
     "@x402/core": "2.19.0",

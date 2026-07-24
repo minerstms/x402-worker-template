@@ -87,8 +87,32 @@ Mainnet remains unsupported and the production mainnet paid route remains disabl
 ## Toolchain
 
 - Node **22.20.1** (see `.nvmrc` and `package.json` `engines`)
-- npm **10.9.2** or newer compatible with the lockfile
+- npm pinned through `packageManager` in `package.json`
 - Reproducible verification: `npm ci`, then the scripts in [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
+
+## Public-release safety gates
+
+Security and release automation live in `scripts/` and run without adding new npm dependencies.
+
+```bash
+npm run security:scan:tracked   # Scan tracked files only
+npm run security:scan:history   # Scan deduplicated Git blobs; prints formal history classification
+npm run security:scan:all         # Run both scans
+npm run check:dependencies      # Exact pins, lockfile metadata, direct runtime imports
+npm run check:docs              # Public documentation consistency
+npm run check:license           # Warns that LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE
+npm run release:check           # Full local release gate bundle
+npm run release:archive         # Create a safe git-archive ZIP plus SHA-256 checksum
+npm run verify:archive          # Verify a git-archive checkout with npm ci + tests + typechecks
+```
+
+Current formal history classification:
+
+`HISTORY CONTAINS PRIVACY-ONLY FINDINGS — REWRITE REQUIRED`
+
+History rewrite is required before the first public push because personal commit metadata and a historical Workers hostname remain in Git history. CI runs the tracked scan and release gates; the manual release workflow runs the history scan and reports `HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH`.
+
+Production mainnet paid routes remain disabled. No production facilitator is selected. Public visibility without an owner-selected license does not grant reuse rights; owner review options include MIT, Apache-2.0, or proprietary/all rights reserved.
 
 ## Commands
 

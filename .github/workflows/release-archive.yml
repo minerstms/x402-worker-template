@@ -3,19 +3,36 @@ name: Release archive verification
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify-archive:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c2afbcb # v4.2.2
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e849af1223bdf6a370 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: npm
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: History security scan and classification
+        run: npm run security:scan:history
+
+      - name: Create safe release archive
+        run: npm run release:archive
+
       - name: Verify release archive reproducibility
         run: npm run verify:archive
+
+      - name: Report history rewrite requirement
+        run: echo "HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH"

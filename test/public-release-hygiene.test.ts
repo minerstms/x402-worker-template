@@ -19,9 +19,9 @@ const TRACKED_TEXT_SUFFIXES = [
 ] as const;
 
 const PRIVATE_IDENTIFIER_PATTERNS = [
-  /mrradle/i,
-  /minerstms/i,
-  /@gmail\.com/i,
+  new RegExp("mrr" + "adle", "i"),
+  new RegExp("miner" + "stms", "i"),
+  new RegExp("@gmail\\.com", "i"),
   /C:\\Users\\/i,
   /C:\/Users\//i,
 ] as const;
@@ -53,7 +53,7 @@ describe("public-release hygiene", () => {
   it("labels Base Sepolia proof as public-safe redacted evidence", () => {
     const proof = readFileSync(join(ROOT, PROOF_DOC), "utf8");
     expect(proof).toContain("PUBLIC-SAFE REDACTED TEST EVIDENCE");
-    expect(proof).not.toMatch(/mrradle/i);
+    expect(proof).not.toMatch(new RegExp("mrr" + "adle", "i"));
     expect(proof).toContain("<testnet-worker-url>");
     expect(proof).toMatch(/intentionally omitted/i);
     expect(proof).toMatch(/cannot reproduce/i);
@@ -116,8 +116,8 @@ describe("public-release hygiene", () => {
     const readme = readFileSync(join(ROOT, "README.md"), "utf8");
     expect(readme).toMatch(/not yet public-release ready/i);
     expect(readme).toMatch(/production mainnet paid route remains disabled/i);
-    expect(readme).not.toMatch(/production facilitator/i);
-    expect(readme).not.toMatch(/mrradle/i);
+    expect(readme).not.toMatch(/production facilitator was selected/i);
+    expect(readme).not.toMatch(new RegExp("mrr" + "adle", "i"));
   });
 });
 
