@@ -1,5 +1,5 @@
 import { execSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -161,6 +161,9 @@ describe("security scanner scripts", () => {
   });
 
   it("reports privacy-only rewrite requirement from real history scan", () => {
+    if (!existsSync(join(ROOT, ".git"))) {
+      return;
+    }
     const result = spawnSync("node", ["scripts/security-scan.mjs", "--history"], {
       cwd: ROOT,
       encoding: "utf8",
@@ -358,6 +361,9 @@ describe("license and production release gates", () => {
 
 describe("tracked security scan on repository", () => {
   it("passes on the current tracked tree", () => {
+    if (!existsSync(join(ROOT, ".git"))) {
+      return;
+    }
     execSync("node scripts/security-scan.mjs --tracked", {
       cwd: ROOT,
       stdio: "pipe",
