@@ -126,7 +126,7 @@ First-party project code is licensed under the **Apache License 2.0** (`Apache-2
 
 Third-party npm dependencies retain their own licenses; see `package-lock.json`. No separate project-level `NOTICE` file is currently required because no vendored third-party source is copied into this repository.
 
-Production mainnet paid routes remain disabled. No production facilitator is selected. No production seller is configured in tracked source.
+Production mainnet paid routes remain disabled. Production facilitator is not selected. The immutable mainnet proof facilitator candidate is PayAI (`https://facilitator.payai.network`) with status `candidate-not-live-verified`; real-payment compatibility is not yet empirically proven. No production seller is configured in tracked source.
 
 ## Commands
 

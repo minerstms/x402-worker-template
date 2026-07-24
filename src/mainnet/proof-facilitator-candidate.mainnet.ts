@@ -1,0 +1,56 @@
+export const MAINNET_PROOF_FACILITATOR = {
+  name: "PayAI",
+  origin: "https://facilitator.payai.network",
+  supportedPath: "/supported",
+  verifyPath: "/verify",
+  settlePath: "/settle",
+} as const;
+
+export const MAINNET_PROOF_FACILITATOR_STATUS =
+  "candidate-not-live-verified" as const;
+
+export const MAINNET_PRODUCTION_FACILITATOR_SELECTED = false as const;
+
+export const MAINNET_PAID_ROUTE_ENABLED = false as const;
+
+export const MAINNET_PAYMENT_READY = false as const;
+
+export const MAINNET_REAL_PAYMENT_COMPATIBILITY =
+  "not-yet-empirically-proven" as const;
+
+export type MainnetProofFacilitatorPath =
+  | typeof MAINNET_PROOF_FACILITATOR.supportedPath
+  | typeof MAINNET_PROOF_FACILITATOR.verifyPath
+  | typeof MAINNET_PROOF_FACILITATOR.settlePath;
+
+export function buildProofFacilitatorCandidateUrl(
+  path: MainnetProofFacilitatorPath,
+): string {
+  return `${MAINNET_PROOF_FACILITATOR.origin}${path}`;
+}
+
+export function assertMainnetProofCandidateInactive(): void {
+  if (MAINNET_PRODUCTION_FACILITATOR_SELECTED) {
+    throw new Error(
+      "Production facilitator selection is disabled in this repository revision.",
+    );
+  }
+  if (MAINNET_PAID_ROUTE_ENABLED) {
+    throw new Error("Mainnet paid-route activation is disabled in this repository revision.");
+  }
+  if (MAINNET_PAYMENT_READY) {
+    throw new Error("Mainnet payment readiness is false in this repository revision.");
+  }
+}
+
+export function describeMainnetProofFacilitatorStatus() {
+  return {
+    proofFacilitatorCandidate: MAINNET_PROOF_FACILITATOR.name,
+    candidateOrigin: MAINNET_PROOF_FACILITATOR.origin,
+    proofFacilitatorStatus: MAINNET_PROOF_FACILITATOR_STATUS,
+    productionFacilitatorSelected: MAINNET_PRODUCTION_FACILITATOR_SELECTED,
+    mainnetPaidRouteEnabled: MAINNET_PAID_ROUTE_ENABLED,
+    mainnetPaymentReady: MAINNET_PAYMENT_READY,
+    realPaymentCompatibility: MAINNET_REAL_PAYMENT_COMPATIBILITY,
+  } as const;
+}

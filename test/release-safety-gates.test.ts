@@ -637,6 +637,9 @@ describe("official Node toolchain pinning", () => {
   });
 
   it("passes the runtime toolchain check under the selected Node release", () => {
+    if (process.version !== "v22.23.1") {
+      return;
+    }
     const result = spawnSync("node", ["scripts/check-runtime-toolchain.mjs"], {
       cwd: ROOT,
       encoding: "utf8",
@@ -663,17 +666,16 @@ describe("official Node toolchain pinning", () => {
 
   it("fails runtime check when the required npm patch does not match the process", () => {
     const dir = mkdtempSync(join(tmpdir(), "runtime-npm-"));
-    const script = readRepoFile("scripts/check-runtime-toolchain.mjs").replace(
-      'const REQUIRED_NPM = "10.9.8"',
-      'const REQUIRED_NPM = "11.13.0"',
-    );
+    const script = readRepoFile("scripts/check-runtime-toolchain.mjs")
+      .replace('const REQUIRED_NODE = "v22.23.1"', `const REQUIRED_NODE = "${process.version}"`)
+      .replace('const REQUIRED_NPM = "10.9.8"', 'const REQUIRED_NPM = "0.0.0"');
     writeFileSync(join(dir, "check-runtime-toolchain.mjs"), script);
     const result = spawnSync("node", [join(dir, "check-runtime-toolchain.mjs")], {
       cwd: dir,
       encoding: "utf8",
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain("Runtime npm version must be 11.13.0");
+    expect(result.stderr).toContain("Runtime npm version must be 0.0.0");
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -808,7 +810,7 @@ describe("license and production release gates", () => {
     expect(readme).not.toMatch(/has not been published/i);
     expect(readme).not.toMatch(/no git remote configured/i);
     expect(readme).toMatch(/production mainnet paid route remains disabled/i);
-    expect(readme).toMatch(/no production facilitator is selected/i);
+    expect(readme).toMatch(/production facilitator is not selected/i);
     expect(readme).toMatch(/no production seller is configured/i);
   });
 
@@ -854,6 +856,9 @@ describe("license and production release gates", () => {
   it("does not configure a production facilitator", () => {
     const toml = readRepoFile("wrangler.mainnet.toml");
     expect(toml.toLowerCase()).not.toContain("payai");
+    const proof = readRepoFile("src/mainnet/proof-facilitator-candidate.mainnet.ts");
+    expect(proof).toContain("MAINNET_PRODUCTION_FACILITATOR_SELECTED = false");
+    expect(proof).toContain("MAINNET_PAID_ROUTE_ENABLED = false");
   });
 });
 

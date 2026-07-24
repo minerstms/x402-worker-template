@@ -1,6 +1,8 @@
 # Mainnet mocked payment orchestrator
 
-This patch adds a **mainnet-only manual x402 payment orchestration pipeline** that runs entirely against an injected in-memory mock facilitator. No production facilitator, seller wallet, or Base RPC endpoint is configured.
+This patch adds a **mainnet-only manual x402 payment orchestration pipeline** that runs entirely against an injected in-memory mock facilitator. No production facilitator is selected, no seller wallet is configured, and no Base RPC endpoint is configured.
+
+The immutable **proof facilitator candidate** is PayAI (`https://facilitator.payai.network`). See [mainnet-proof-facilitator-candidate.md](./mainnet-proof-facilitator-candidate.md). Production mainnet paid routes remain disabled and real-payment compatibility is not yet empirically proven.
 
 ## Mainnet policy values
 
