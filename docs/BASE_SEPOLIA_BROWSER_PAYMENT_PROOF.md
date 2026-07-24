@@ -1,5 +1,7 @@
 # Base Sepolia Browser Payment Proof
 
+> **Source-template proof only.** This record applies to the dedicated demonstration Worker `x402-worker-template-testnet` built from this repository. A copied or renamed clone does **not** inherit this verification unless it completes its own supervised proof. Do not point clone documentation at this file as proof of clone payment.
+
 ## 1. Scope
 
 This document records the first verified browser MetaMask payment against the dedicated demonstration Worker `x402-worker-template-testnet` on Base Sepolia testnet.
@@ -138,7 +140,7 @@ This proof intentionally excludes:
 - **Browser payment verified on Base Sepolia** — yes, for this dedicated demonstration Worker on 2026-07-23.
 - **Mainnet not tested**
 - **Real USDC not tested**
-- **Template not yet clone-ready** — fresh tracked-source clone/rename drill still required.
+- **Template not yet clone-ready** — a fresh tracked-source clone/rename drill succeeded in evidence repository `x402-clone-drill@65c8c21`, but final template clone-surface cleanup and tagging remain.
 - **No customer private key required** for browser customers.
 - A hard refresh was once required after redeploy because browsers could retain a stale `/pay.js` until cache headers were hardened.
 - Post-success UI initially showed `Payment terms: awaiting confirmation` while wallet state was `success`; this was corrected in a follow-up patch.
@@ -151,5 +153,5 @@ This proof intentionally excludes:
 | Browser MetaMask Base Sepolia payment | Verified 2026-07-23 |
 | Mainnet | Unsupported |
 | Real USDC | Not tested |
-| Clone-ready | Not yet |
+| Clone-ready | Not yet (clone drill succeeded; final template cleanup in progress) |
 | Another live payment | Not required for this milestone |

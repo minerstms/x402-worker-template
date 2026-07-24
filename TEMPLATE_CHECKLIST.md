@@ -27,7 +27,10 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 - [x] Browser page cannot sign or submit payment until `paymentReady: true`
 - [x] Browser fetch receiver binding prevents detached `fetch` illegal invocation
 - [x] `/pay`, `/pay.js`, `/pay.css`, and `/pay/config` use `Cache-Control: no-store`
-- [ ] Buyer URL guards for the new path and query shape (`src/buyer-guards.ts`)
+- [x] Shared paid-route constants and `buildPaidRouteUrl` live in `src/pay-public-config.ts`
+- [x] Buyer guards and browser terms loading use shared route/query constants
+- [x] Clone surface contract test (`test/clone-surfaces.test.ts`)
+- [ ] Buyer URL guards for the new path and query shape (`src/buyer-guards.ts`; import `PAID_ROUTE` and `ALLOWED_QUERY_KEY` from `src/pay-public-config.ts`)
 - [ ] `.env.buyer.example` `API_URL` and remote origin documentation
 - [ ] Buyer preflight and payment-path tests
 
@@ -41,6 +44,7 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 
 ## Verified Base Sepolia milestones (reference template)
 
+- [x] Fresh tracked-source clone/rename drill succeeded (`x402-clone-drill@65c8c21`, evidence only)
 - [x] MetaMask wallet connection
 - [x] Base Sepolia network switching
 - [x] Strict unpaid HTTP 402 validation
@@ -80,6 +84,8 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 - [ ] Final tracked-source clone/rename drill
 - [ ] Final version tag
 - [ ] Clone-ready status
+
+`docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md` records the source template's live browser payment only. Clones must not treat it as proof of their own payment.
 
 ## Do not commit
 

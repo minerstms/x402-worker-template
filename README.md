@@ -13,7 +13,9 @@ A reusable starting point for paid HTTP APIs on Cloudflare Workers. It preserves
 - Node CLI Base Sepolia test-USDC payment verified against the river reference Worker
 - Browser MetaMask Base Sepolia test-USDC payment verified on 2026-07-23 against the dedicated demonstration Worker `x402-worker-template-testnet`
 
-See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md) for the live browser proof record.
+See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md) for the live browser proof record on the **source template's** dedicated demonstration Worker only.
+
+A successful fresh clone/rename drill was completed in the separate evidence repository `x402-clone-drill@65c8c21`. That clone has **not** performed a live payment and must not inherit the source proof.
 
 Mainnet and real USDC are not supported. The template is **not yet clone-ready**.
 
@@ -95,6 +97,10 @@ npx wrangler deploy --dry-run   # Bundle/check without deploying
 ## Cloning checklist
 
 When creating a new project from this template, see [TEMPLATE_CHECKLIST.md](./TEMPLATE_CHECKLIST.md).
+
+Shared paid-route constants live in `src/pay-public-config.ts` (`PAID_ROUTE`, `ALLOWED_QUERY_KEY`, `BROWSER_DEMO_QUERY_VALUE`, `buildPaidRouteUrl`). Buyer guards and browser terms loading must continue to use those constants rather than hardcoding route paths or query keys.
+
+`test/clone-surfaces.test.ts` documents the small set of files a future clone should edit.
 
 ## Red-lane warnings
 

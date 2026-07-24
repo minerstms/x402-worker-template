@@ -79,7 +79,7 @@ export function buildPayPublicConfig(config: ResolvedConfig): PayPublicConfig {
   };
 }
 
-export function buildPaidExampleUrl(
+export function buildPaidRouteUrl(
   origin: string,
   queryValue: string = BROWSER_DEMO_QUERY_VALUE,
 ): string {

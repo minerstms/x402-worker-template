@@ -10,6 +10,11 @@ import {
   selectBaseSepoliaPaymentRequirement,
   validateBaseSepoliaPaymentRequirements,
 } from "./payment-policy.js";
+import {
+  ALLOWED_QUERY_KEY,
+  PAID_ROUTE,
+} from "./pay-public-config.js";
+import { EXAMPLE_VALUE_MAX_LENGTH } from "./routes/example.js";
 
 export {
   applyBaseSepoliaPaymentPolicy,
@@ -26,7 +31,6 @@ export {
 export const BUYER_FETCH_REDIRECT = "error" as const;
 export const PRIVATE_KEY_PATTERN = /^0x[0-9a-fA-F]{64}$/;
 export const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
-export const EXAMPLE_VALUE_MAX_LENGTH = 256;
 
 export type BuyerGuardConfig = {
   apiUrl: string | undefined;
@@ -84,26 +88,26 @@ export function validateExpectedPayToAddress(
 }
 
 function validatePaidRoutePathAndQuery(url: URL): BuyerGuardResult {
-  if (url.pathname !== "/v1/example") {
+  if (url.pathname !== PAID_ROUTE) {
     return {
       ok: false,
-      reason: "API_URL pathname must be /v1/example.",
+      reason: `API_URL pathname must be ${PAID_ROUTE}.`,
     };
   }
 
   const queryKeys = [...url.searchParams.keys()];
-  if (queryKeys.length !== 1 || queryKeys[0] !== "value") {
+  if (queryKeys.length !== 1 || queryKeys[0] !== ALLOWED_QUERY_KEY) {
     return {
       ok: false,
-      reason: "API_URL must include exactly one value query parameter.",
+      reason: `API_URL must include exactly one ${ALLOWED_QUERY_KEY} query parameter.`,
     };
   }
 
-  const values = url.searchParams.getAll("value");
+  const values = url.searchParams.getAll(ALLOWED_QUERY_KEY);
   if (values.length !== 1) {
     return {
       ok: false,
-      reason: "API_URL must include exactly one value query parameter.",
+      reason: `API_URL must include exactly one ${ALLOWED_QUERY_KEY} query parameter.`,
     };
   }
 
@@ -115,7 +119,7 @@ function validatePaidRoutePathAndQuery(url: URL): BuyerGuardResult {
   ) {
     return {
       ok: false,
-      reason: "API_URL value query parameter is invalid.",
+      reason: `API_URL ${ALLOWED_QUERY_KEY} query parameter is invalid.`,
     };
   }
 

@@ -1,7 +1,7 @@
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import type { PaymentRequired } from "@x402/core/types";
 import type { PayPublicConfig } from "../pay-public-config.js";
-import { buildPaidExampleUrl } from "../pay-public-config.js";
+import { buildPaidRouteUrl } from "../pay-public-config.js";
 import { validateBaseSepoliaPaymentRequirements } from "../payment-policy.js";
 import {
   createPaymentQuote,
@@ -22,7 +22,7 @@ export async function loadAndValidatePaymentTerms(options: {
   queryValue?: string;
 }): Promise<TermsLoadResult> {
   const queryValue = options.queryValue ?? "browser-demo";
-  const url = buildPaidExampleUrl(options.origin, queryValue);
+  const url = buildPaidRouteUrl(options.origin, queryValue);
 
   let response: Response;
   try {
