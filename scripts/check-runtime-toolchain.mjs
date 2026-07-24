@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
@@ -10,9 +11,33 @@ function fail(message) {
   process.exit(1);
 }
 
+function resolveNpmCliPath() {
+  const nodeDir = dirname(process.execPath);
+  const candidates = [
+    join(nodeDir, "node_modules", "npm", "bin", "npm-cli.js"),
+    join(nodeDir, "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 function readNpmVersion() {
-  const npmCli = join(dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js");
-  const result = spawnSync(process.execPath, [npmCli, "--version"], {
+  const npmCli = resolveNpmCliPath();
+  if (npmCli) {
+    const result = spawnSync(process.execPath, [npmCli, "--version"], {
+      encoding: "utf8",
+      env: process.env,
+    });
+    if (result.status === 0 && result.stdout?.trim()) {
+      return result.stdout.trim();
+    }
+  }
+
+  const result = spawnSync("npm", ["--version"], {
     encoding: "utf8",
     env: process.env,
   });
