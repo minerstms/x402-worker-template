@@ -1,0 +1,12 @@
+name = "x402-worker-mainnet-proof"
+main = "src/index.mainnet.ts"
+compatibility_date = "2025-07-21"
+compatibility_flags = ["nodejs_compat"]
+
+[[durable_objects.bindings]]
+name = "PAYMENT_COORDINATOR"
+class_name = "PaymentCoordinatorDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PaymentCoordinatorDurableObject"]

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-mainnet/
 src/generated/
 .wrangler/
 .dev.vars
