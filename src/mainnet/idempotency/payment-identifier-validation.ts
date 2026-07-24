@@ -1,9 +1,9 @@
 import type { PaymentPayload, PaymentRequired } from "@x402/core/types";
 import {
-  extractAndValidatePaymentIdentifier,
   isPaymentIdentifierRequired,
   validatePaymentIdentifierRequirement,
 } from "@x402/extensions/payment-identifier";
+import { extractPaymentIdentifierWithoutSchemaCompile } from "./payment-identifier-workerd-safe.js";
 
 export type PaymentIdentifierValidationResult =
   | { ok: true; paymentIdentifier: string }
@@ -44,11 +44,14 @@ export function validatePaymentIdentifierBeforeReservation(
     };
   }
 
-  const extracted = extractAndValidatePaymentIdentifier(paymentPayload);
+  const extracted = extractPaymentIdentifierWithoutSchemaCompile(paymentPayload);
   if (!extracted.validation.valid) {
     return {
       ok: false,
-      reason: extracted.validation.errors?.[0] ?? "Payment identifier is malformed.",
+      reason:
+        "errors" in extracted.validation
+          ? (extracted.validation.errors[0] ?? "Payment identifier is malformed.")
+          : "Payment identifier is malformed.",
     };
   }
   if (!extracted.id) {

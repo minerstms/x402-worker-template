@@ -2,6 +2,56 @@
 
 This milestone adds a **mainnet-only browser payment controller** and a **local mock browser harness**. It proves the complete browser-facing control flow without MetaMask, a real wallet, a real signature, a production facilitator, Base RPC, real USDC, deployment, or enabling the production mainnet paid route.
 
+## Workerd AJV compatibility repair
+
+Under actual `wrangler dev` / workerd, paid requests previously failed with:
+
+```
+Error compiling schema, function code: const schema1 = scope.schema[1]; ...
+```
+
+### Offending package / schema
+
+- Package: `@x402/extensions@2.19.0` (`payment-identifier`)
+- Call site: `extractAndValidatePaymentIdentifier()` → `validatePaymentIdentifier()`
+- Schema: `paymentIdentifierSchema` (JSON Schema Draft 2020-12) attached by `declarePaymentIdentifierExtension(true)`
+- Trigger: browser clients echo the extension `schema` field in payment payloads; `@x402/extensions` compiles that schema with AJV on every validation
+
+### Why automated tests previously missed it
+
+- Orchestrator and browser recovery tests built payment payloads **without** the echoed `schema` field, so AJV compilation was never invoked
+- Miniflare-based tests run in Node where AJV dynamic code generation succeeds even when schema is present
+- Only real workerd (`wrangler dev`) blocks AJV `compile()` during request handling
+
+### Selected repair (Option 1)
+
+First-party mainnet validation now uses `payment-identifier-workerd-safe.ts`, which mirrors the hand-written structural checks in `@x402/extensions` `validatePaymentIdentifier()` and enforces the same `paymentIdentifierSchema` constraints **without runtime JSON Schema compilation**.
+
+Validation remains equivalent:
+
+- required extension declaration
+- required payment identifier when server marks it required
+- alphanumeric/hyphen/underscore ID format with 16–128 length
+- existing mainnet policy checks for network, asset, amount, seller, EIP-712 metadata, authorization structure, settlement receipt, and coordinator idempotency
+
+Runtime dynamic code generation for this path was eliminated. No `eval()`, `new Function()`, or AJV `compile()` runs during paid request handling for payment-identifier validation.
+
+### Mock harness entry path
+
+- Source/dev entry: `src/index.mainnet-mock-harness.ts` (declared in `wrangler.mainnet-mock-harness.toml`)
+- Built artifact: `dist-mainnet-mock-harness/index.mainnet-mock-harness.js`
+- There is no `dist-mainnet-mock-harness/index.js`; tests fail if that stale path is referenced
+
+### Manual browser proof (workerd)
+
+After the repair, `npx wrangler dev -c wrangler.mainnet-mock-harness.toml` supports:
+
+- **Normal success:** one fake signer, one paid request, one mock verify, one mock settle, success UI, no AJV compile error
+- **Response loss:** status polling recovers fulfilled cached result without a second signature or paid request
+- **Refresh recovery:** session restores during pending recovery; polling only; no signing or paid request
+
+No external origins (Base RPC, PayAI, Dexter, CDP, x402.org facilitator) are contacted.
+
 ## Architecture
 
 The mock harness lives in a separate worker entry (`src/index.mainnet-mock-harness.ts`) and is **not** imported by the production mainnet entry (`src/index.mainnet.ts`).

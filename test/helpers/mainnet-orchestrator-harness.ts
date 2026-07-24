@@ -1,6 +1,9 @@
 import { encodePaymentSignatureHeader } from "@x402/core/http";
 import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
-import { PAYMENT_IDENTIFIER } from "@x402/extensions/payment-identifier";
+import {
+  declarePaymentIdentifierExtension,
+  PAYMENT_IDENTIFIER,
+} from "@x402/extensions/payment-identifier";
 import {
   buildMainnetHttpContext,
   createMainnetOrchestratorResourceServer,
@@ -73,6 +76,7 @@ export function buildValidMainnetPaymentPayload(
     }>;
     omitIdentifier?: boolean;
     malformedIdentifier?: string;
+    includeExtensionSchema?: boolean;
   } = {},
 ): PaymentPayload {
   const authorization = {
@@ -95,13 +99,20 @@ export function buildValidMainnetPaymentPayload(
   };
 
   if (!overrides.omitIdentifier) {
-    payload.extensions = {
-      [PAYMENT_IDENTIFIER]: {
-        info: {
-          required: true,
-          id: overrides.malformedIdentifier ?? overrides.paymentIdentifier ?? MAINNET_TEST_PAYMENT_ID,
-        },
+    const extension: Record<string, unknown> = {
+      info: {
+        required: true,
+        id:
+          overrides.malformedIdentifier ??
+          overrides.paymentIdentifier ??
+          MAINNET_TEST_PAYMENT_ID,
       },
+    };
+    if (overrides.includeExtensionSchema) {
+      extension.schema = declarePaymentIdentifierExtension(true).schema;
+    }
+    payload.extensions = {
+      [PAYMENT_IDENTIFIER]: extension,
     };
   }
 
@@ -124,6 +135,7 @@ export async function buildTestPaymentPayload(
     }>;
     omitIdentifier?: boolean;
     malformedIdentifier?: string;
+    includeExtensionSchema?: boolean;
   } = {},
 ): Promise<PaymentPayload> {
   const accepted = {
@@ -135,6 +147,7 @@ export async function buildTestPaymentPayload(
     authorizationOverrides: options.authorizationOverrides,
     omitIdentifier: options.omitIdentifier,
     malformedIdentifier: options.malformedIdentifier,
+    includeExtensionSchema: options.includeExtensionSchema,
   });
 }
 
