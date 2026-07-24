@@ -389,12 +389,72 @@ describe("license and production release gates", () => {
     expect(readme).not.toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
   });
 
-  it("marks public release ready for authorized publication only", () => {
+  it("marks initial public push as authorized", () => {
     const releaseCheck = readRepoFile("scripts/release-check.mjs");
-    expect(releaseCheck).toContain("READY FOR AUTHORIZED PUBLICATION");
+    expect(releaseCheck).toContain("INITIAL PUSH AUTHORIZED");
+    expect(releaseCheck).toContain("minerstms/x402-worker-template");
     expect(releaseCheck).toContain("LICENSE: Apache-2.0");
     expect(releaseCheck).not.toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
     expect(releaseCheck).not.toContain("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
+  });
+
+  it("declares exact canonical package repository metadata", () => {
+    const pkg = JSON.parse(readRepoFile("package.json"));
+    expect(pkg.repository).toEqual({
+      type: "git",
+      url: "git+https://github.com/minerstms/x402-worker-template.git",
+    });
+    expect(pkg.homepage).toBe("https://github.com/minerstms/x402-worker-template#readme");
+    expect(pkg.bugs).toEqual({
+      url: "https://github.com/minerstms/x402-worker-template/issues",
+    });
+  });
+
+  it("passes canonical repository metadata check in Git checkout", () => {
+    const result = spawnSync("node", ["scripts/check-canonical-repo.mjs"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("minerstms/x402-worker-template");
+  });
+
+  it("passes canonical repository metadata check without Git metadata", () => {
+    const dir = mkdtempSync(join(tmpdir(), "canonical-archive-"));
+    writeFileSync(join(dir, "package.json"), readRepoFile("package.json"));
+    const result = spawnSync("node", [join(ROOT, "scripts/check-canonical-repo.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("package metadata only");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("rejects a non-canonical origin remote", () => {
+    const dir = mkdtempSync(join(tmpdir(), "canonical-origin-"));
+    execSync("git init", { cwd: dir });
+    execSync("git remote add origin https://github.com/example/other-repo.git", { cwd: dir });
+    writeFileSync(join(dir, "package.json"), readRepoFile("package.json"));
+    const result = spawnSync("node", [join(ROOT, "scripts/check-canonical-repo.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("minerstms/x402-worker-template");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("documents canonical repository publication status in README", () => {
+    const readme = readRepoFile("README.md");
+    expect(readme).toContain("https://github.com/minerstms/x402-worker-template");
+    expect(readme).toContain("PUBLIC REPOSITORY CREATED");
+    expect(readme).toContain("INITIAL PUSH AUTHORIZED");
+    expect(readme).not.toMatch(/has not been published/i);
+    expect(readme).not.toMatch(/no git remote configured/i);
+    expect(readme).toMatch(/production mainnet paid route remains disabled/i);
+    expect(readme).toMatch(/no production facilitator is selected/i);
+    expect(readme).toMatch(/no production seller is configured/i);
   });
 
   it("uses the neutral identity for every commit author and committer", () => {

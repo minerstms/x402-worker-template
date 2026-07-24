@@ -7,6 +7,7 @@ const steps = [
   { label: "Dependency pin check", command: ["node", "scripts/check-dependency-pins.mjs"] },
   { label: "Documentation consistency check", command: ["node", "scripts/check-public-docs.mjs"] },
   { label: "License check", command: ["node", "scripts/check-license.mjs"] },
+  { label: "Canonical repository check", command: ["node", "scripts/check-canonical-repo.mjs"] },
   { label: "Unit and integration tests", command: ["npm", "test"] },
   { label: "Typecheck", command: ["npm", "run", "typecheck"] },
   { label: "Mainnet typecheck", command: ["npm", "run", "typecheck:mainnet"] },
@@ -48,8 +49,11 @@ for (const step of steps) {
 }
 
 console.log("\nRelease check: PASS (automation gates)");
-console.log("PUBLIC RELEASE STATUS: READY FOR AUTHORIZED PUBLICATION");
+console.log("PUBLIC RELEASE STATUS: INITIAL PUSH AUTHORIZED");
+console.log("- Canonical repository: https://github.com/minerstms/x402-worker-template");
 console.log("- LICENSE: Apache-2.0");
 console.log("- HISTORY CLASSIFICATION: HISTORY CLEAN");
-console.log("- No Git remote configured in this repository");
-console.log("- Publication, remote creation, and push require separate owner authorization");
+console.log("- Production mainnet route: disabled");
+console.log("- Production facilitator: not selected");
+console.log("- Production seller: not configured in tracked source");
+console.log("- Real Base-mainnet payment: not completed (mocks only)");

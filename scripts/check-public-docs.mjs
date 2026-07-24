@@ -13,7 +13,10 @@ const APPROVED_PATTERNS = [
   /production mainnet paid route remains disabled/i,
   /production facilitator not selected/i,
   /ready for authorized public publication/i,
+  /initial push authorized/i,
+  /public repository created/i,
   /apache-2.0/i,
+  /github\.com\/minerstms\/x402-worker-template/i,
 ];
 
 const FAIL_PATTERNS = [

@@ -20,11 +20,21 @@ const TRACKED_TEXT_SUFFIXES = [
 
 const PRIVATE_IDENTIFIER_PATTERNS = [
   new RegExp("mrr" + "adle", "i"),
-  new RegExp("miner" + "stms", "i"),
   new RegExp("@gmail\\.com", "i"),
   /C:\\Users\\/i,
   /C:\/Users\//i,
 ] as const;
+
+function containsBlockedPersonalUsername(content: string): boolean {
+  const redacted = content
+    .replace(/https:\/\/github\.com\/minerstms\/x402-worker-template[^\s"'`]*/gi, "")
+    .replace(/git\+https:\/\/github\.com\/minerstms\/x402-worker-template\.git/gi, "")
+    .replace(/git@github\.com:minerstms\/x402-worker-template\.git/gi, "")
+    .replace(/github\\\.com\\\/minerstms\\\/x402-worker-template/gi, "")
+    .replace(/minerstms\/x402-worker-template/gi, "")
+    .replace(/CANONICAL_OWNER = "minerstms"/g, "");
+  return new RegExp("miner" + "stms", "i").test(redacted);
+}
 
 const PROOF_DOC = "docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md";
 
@@ -64,6 +74,10 @@ describe("public-release hygiene", () => {
 
     for (const relativePath of listTrackedTextFiles()) {
       const content = readFileSync(join(ROOT, relativePath), "utf8");
+      if (!relativePath.startsWith("test/") && containsBlockedPersonalUsername(content)) {
+        offenders.push(relativePath);
+        continue;
+      }
       for (const pattern of PRIVATE_IDENTIFIER_PATTERNS) {
         if (pattern.test(content)) {
           offenders.push(relativePath);
@@ -114,7 +128,8 @@ describe("public-release hygiene", () => {
 
   it("keeps README status claims aligned with disabled mainnet", () => {
     const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-    expect(readme).toMatch(/ready for authorized public publication/i);
+    expect(readme).toMatch(/github\.com\/minerstms\/x402-worker-template/i);
+    expect(readme).toMatch(/initial push authorized/i);
     expect(readme).toMatch(/production mainnet paid route remains disabled/i);
     expect(readme).toMatch(/Apache-2.0/i);
     expect(readme).not.toMatch(/production facilitator was selected/i);

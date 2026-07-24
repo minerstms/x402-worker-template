@@ -17,7 +17,11 @@ See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAY
 
 A successful fresh clone/rename drill was completed in a separate evidence repository. That clone has **not** performed a live payment and must not inherit the source proof.
 
-Mainnet and real USDC are not supported. Production mainnet paid routes remain disabled. The sanitized source tree is **ready for authorized public publication**; no Git remote is configured and this repository has not been published.
+Mainnet and real USDC are not supported. Production mainnet paid routes remain disabled. Base mainnet behavior is validated with mocks only; no real Base-mainnet payment has been completed.
+
+**Canonical public repository:** https://github.com/minerstms/x402-worker-template
+
+**Publication status:** `PUBLIC REPOSITORY CREATED — INITIAL PUSH AUTHORIZED` (sanitized history and Apache-2.0 license are ready for the first public push).
 
 ## Routes
 
@@ -147,7 +151,7 @@ See [SECURITY.md](./SECURITY.md) for vulnerability reporting and sensitive-mater
 - Do not deploy, configure Cloudflare secrets, or run paid buyer commands without explicit authorization.
 - Do not commit private keys, seller addresses, or `.dev.vars` / `.env.buyer`.
 - Do not enable Base mainnet or change the locked Base Sepolia payment terms without a deliberate security review.
-- Publication requires separate owner authorization; this repository has no configured Git remote.
+- Canonical repository: https://github.com/minerstms/x402-worker-template
 
 ## Provenance
 
