@@ -4,48 +4,48 @@
     "category": "private-key-material",
     "sha256": "3021d90eb9437b2d8f30e8363695c4418b5e5f1870801b5c317e9398ee0f572d",
     "reason": "Scanner unit-test fixture for private-key header detection",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "github-token",
     "sha256": "2c7ac1cef82678bcec56508fbf64e40261f80d869789196ff6e4dbd729be5243",
     "reason": "Scanner unit-test fixture for redaction coverage",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "credential-url",
     "sha256": "96c7b8c86ad94d49e6221342863d052e81549eb3b6b93226ae55655ee69a27db",
     "reason": "Scanner unit-test fixture for credential URL detection",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "api-key-assignment",
     "sha256": "cbdff38d73cacefabb1e344c26a70d93fe10bf5a0677dc8c683ed4bb47d2cbc4",
     "reason": "Scanner unit-test fixture for allowlist exact-match coverage",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "api-key-assignment",
     "sha256": "8d4d2117c08fc51a9026207898aa0eda42f79af4658af0fa2c1e357b6a6b62b3",
     "reason": "Scanner unit-test fixture for changed allowlist rejection",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "private-key-env",
     "sha256": "9444e139ed159b27cf9fb2b5fbadff97c76809824881183129793acf741e1b8e",
     "reason": "Scanner unit-test fixture for private-key env detection",
-    "scope": "tracked"
+    "scope": "both"
   },
   {
     "path": "test/release-safety-gates.test.ts",
     "category": "workers-hostname",
     "sha256": "4efa71359bd9b1f2614ebf2d252889128fd5120a668fbb4571d9fb8516da407a",
     "reason": "Documentation gate unit-test fixture hostname sample",
-    "scope": "tracked"
+    "scope": "both"
   }
 ]
