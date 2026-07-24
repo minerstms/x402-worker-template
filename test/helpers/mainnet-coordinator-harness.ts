@@ -63,7 +63,7 @@ export async function getMainnetBindings(): Promise<MainnetTestBindings> {
 const defaultTermsInput: TermsFingerprintInput = {
   scheme: "exact",
   network: "eip155:8453",
-  asset: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   amount: "1000",
   payTo: "0x000000000000000000000000000000000000dEaD",
   httpMethod: "GET",
@@ -79,7 +79,7 @@ const defaultAuthInput: AuthCommitmentInput = {
   value: "1000",
   validAfter: "0",
   validBefore: "9999999999",
-  verifyingContract: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  verifyingContract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
 };
 
 export async function buildTestPrepareInput(
