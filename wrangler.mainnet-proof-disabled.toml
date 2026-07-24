@@ -1,0 +1,16 @@
+# Disabled Base-mainnet proof Worker — paid route remains NOT_ENABLED.
+# Required Cloudflare secret at upload/deploy time (never in Git):
+#   MAINNET_SELLER_ADDRESS
+name = "x402-worker-template-mainnet-proof-disabled"
+main = "src/index.mainnet.ts"
+compatibility_date = "2025-07-21"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "PAYMENT_COORDINATOR"
+class_name = "PaymentCoordinatorDurableObject"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PaymentCoordinatorDurableObject"]

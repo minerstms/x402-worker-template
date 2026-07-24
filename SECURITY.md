@@ -6,6 +6,7 @@ This repository is a **template and test harness** for x402 payments on **Base S
 
 - Production Base mainnet paid routes remain **disabled** in the tracked configuration.
 - No production facilitator, seller wallet, or deployment identity is configured in the public source tree.
+- A dedicated disabled mainnet proof Worker may receive a `MAINNET_SELLER_ADDRESS` Cloudflare secret at upload/deploy time; the secret value must never enter Git and the disabled runtime does not consume it for payment.
 - Real mainnet payment, real USDC movement, and production deployment require deliberate, supervised steps outside the default template state.
 
 ## Reporting a vulnerability

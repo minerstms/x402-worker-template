@@ -55,6 +55,8 @@ describe("mainnet proof facilitator candidate", () => {
       productionFacilitatorSelected: false,
       mainnetPaidRouteEnabled: false,
       mainnetPaymentReady: false,
+      productionSellerActivated: false,
+      proofSellerSecretName: "MAINNET_SELLER_ADDRESS",
       realPaymentCompatibility: "not-yet-empirically-proven",
     });
   });

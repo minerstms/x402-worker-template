@@ -22,6 +22,10 @@ function main() {
     join(repoRoot, "src", "mainnet", "proof-facilitator-http.mainnet.ts"),
     "utf8",
   );
+  const proofDisabledToml = readFileSync(
+    join(repoRoot, "wrangler.mainnet-proof-disabled.toml"),
+    "utf8",
+  );
 
   if (!mainnetEntry.includes('code: "NOT_ENABLED"')) {
     console.error("Production mainnet paid route is not disabled.");
@@ -65,6 +69,31 @@ function main() {
 
   if (mockHarness.includes("index.mainnet.ts")) {
     console.error("Mock harness must remain isolated from production mainnet entry.");
+    process.exit(1);
+  }
+
+  if (!proofDisabledToml.includes('name = "x402-worker-template-mainnet-proof-disabled"')) {
+    console.error("Disabled proof Worker name must match the reviewed deployment boundary.");
+    process.exit(1);
+  }
+
+  if (!proofDisabledToml.includes("workers_dev = true")) {
+    console.error("Disabled proof Worker must remain on workers.dev only.");
+    process.exit(1);
+  }
+
+  if (proofDisabledToml.match(/\b0x[0-9a-fA-F]{40}\b/)) {
+    console.error("Disabled proof Wrangler config must not contain a seller address.");
+    process.exit(1);
+  }
+
+  if (proofDisabledToml.includes("[vars]")) {
+    console.error("Disabled proof Wrangler config must not declare plaintext vars for seller binding.");
+    process.exit(1);
+  }
+
+  if (!proofCandidate.includes("MAINNET_PRODUCTION_SELLER_ACTIVATED = false")) {
+    console.error("Production seller activation must remain false in source.");
     process.exit(1);
   }
 

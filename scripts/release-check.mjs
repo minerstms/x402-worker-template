@@ -29,6 +29,10 @@ const steps = [
     label: "Wrangler dry-run (mainnet mock harness)",
     command: ["npx", "wrangler", "deploy", "--dry-run", "-c", "wrangler.mainnet-mock-harness.toml"],
   },
+  {
+    label: "Wrangler dry-run (mainnet proof disabled)",
+    command: ["npx", "wrangler", "deploy", "--dry-run", "-c", "wrangler.mainnet-proof-disabled.toml"],
+  },
   { label: "Release gate check", command: ["node", "scripts/check-release-gates.mjs"] },
   { label: "Git diff whitespace check", command: ["git", "diff", "--check"] },
 ];
@@ -57,5 +61,5 @@ console.log("- LICENSE: Apache-2.0");
 console.log("- HISTORY CLASSIFICATION: HISTORY CLEAN");
 console.log("- Production mainnet route: disabled");
 console.log("- Production facilitator: not selected");
-console.log("- Production seller: not configured in tracked source");
+console.log("- Production seller: not activated; secret binding name only in source (`MAINNET_SELLER_ADDRESS`)");
 console.log("- Real Base-mainnet payment: not completed (mocks only)");

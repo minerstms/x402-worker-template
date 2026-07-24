@@ -15,6 +15,10 @@ export const MAINNET_PAID_ROUTE_ENABLED = false as const;
 
 export const MAINNET_PAYMENT_READY = false as const;
 
+export const MAINNET_PRODUCTION_SELLER_ACTIVATED = false as const;
+
+export const MAINNET_PROOF_SELLER_SECRET_NAME = "MAINNET_SELLER_ADDRESS" as const;
+
 export const MAINNET_REAL_PAYMENT_COMPATIBILITY =
   "not-yet-empirically-proven" as const;
 
@@ -55,6 +59,8 @@ export function describeMainnetProofFacilitatorStatus() {
     productionFacilitatorSelected: MAINNET_PRODUCTION_FACILITATOR_SELECTED,
     mainnetPaidRouteEnabled: MAINNET_PAID_ROUTE_ENABLED,
     mainnetPaymentReady: MAINNET_PAYMENT_READY,
+    productionSellerActivated: MAINNET_PRODUCTION_SELLER_ACTIVATED,
+    proofSellerSecretName: MAINNET_PROOF_SELLER_SECRET_NAME,
     realPaymentCompatibility: MAINNET_REAL_PAYMENT_COMPATIBILITY,
   } as const;
 }

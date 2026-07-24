@@ -84,5 +84,8 @@ jobs:
       - name: Wrangler dry-run (mainnet mock harness)
         run: npx wrangler deploy --dry-run -c wrangler.mainnet-mock-harness.toml
 
+      - name: Wrangler dry-run (mainnet proof disabled)
+        run: npx wrangler deploy --dry-run -c wrangler.mainnet-proof-disabled.toml
+
       - name: Git diff whitespace check
         run: git diff --exit-code
