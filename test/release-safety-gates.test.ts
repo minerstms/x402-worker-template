@@ -315,6 +315,26 @@ describe("CI and release archive hardening", () => {
     expect(ci).not.toMatch(/uses: actions\/checkout@v/);
   });
 
+  it("runs GitHub action pin check in CI", () => {
+    const ci = readRepoFile(".github/workflows/ci.yml");
+    expect(ci).toContain("npm run check:actions");
+  });
+
+  it("runs GitHub action pin check in release check", () => {
+    const script = readRepoFile("scripts/release-check.mjs");
+    expect(script).toContain("scripts/check-github-action-pins.mjs");
+  });
+
+  it("runs GitHub action pin check in the manual release workflow", () => {
+    const workflow = readRepoFile(".github/workflows/release-archive.yml");
+    expect(workflow).toContain("npm run check:actions");
+  });
+
+  it("runs GitHub action pin check during archive verification", () => {
+    const script = readRepoFile("scripts/verify-release-archive.ts");
+    expect(script).toContain("npm run check:actions");
+  });
+
   it("contains no deploy or payment commands in CI", () => {
     const ci = readRepoFile(".github/workflows/ci.yml");
     expect(ci).not.toMatch(/\bwrangler deploy\b(?! --dry-run)/);
@@ -349,6 +369,146 @@ describe("CI and release archive hardening", () => {
     const script = readRepoFile("scripts/create-safe-archive.mjs");
     expect(script).toContain('"ls-files", "--others", "--exclude-standard"');
     expect(script).toContain("DANGEROUS_UNTRACKED");
+  });
+});
+
+const ACTION_PINS_MANIFEST = readRepoFile(".github/action-pins.json");
+const CHECKOUT_SHA = "11bd71901bbe5b1630ceea73d27597364c9af683";
+const SETUP_NODE_SHA = "49933ea5288caeca8642d1e84afbd3f7d6820020";
+
+function runActionPinCheck(cwd: string) {
+  return spawnSync("node", [join(ROOT, "scripts/check-github-action-pins.mjs")], {
+    cwd,
+    encoding: "utf8",
+  });
+}
+
+function buildValidPinWorkflow(extraSteps = ""): string {
+  return `name: CI
+on: push
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@${CHECKOUT_SHA} # v4.2.2
+      - name: Setup Node.js
+        uses: actions/setup-node@${SETUP_NODE_SHA} # v4.4.0
+${extraSteps}`;
+}
+
+function scaffoldPinCheckDir(workflowYaml: string, manifest = ACTION_PINS_MANIFEST): string {
+  const dir = mkdtempSync(join(tmpdir(), "action-pins-"));
+  mkdirSync(join(dir, ".github", "workflows"), { recursive: true });
+  writeFileSync(join(dir, ".github", "action-pins.json"), manifest);
+  writeFileSync(join(dir, ".github", "workflows", "ci.yml"), workflowYaml);
+  return dir;
+}
+
+describe("GitHub action pin consistency", () => {
+  it("passes on the repository root", () => {
+    const result = runActionPinCheck(ROOT);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("GitHub action pin check: PASS");
+    expect(result.stdout).toContain(`actions/checkout@${CHECKOUT_SHA}`);
+    expect(result.stdout).toContain(`actions/setup-node@${SETUP_NODE_SHA}`);
+  });
+
+  it("passes when checkout and setup-node SHAs match the manifest", () => {
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow());
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when checkout SHA differs by one character", () => {
+    const mutated = `${CHECKOUT_SHA.slice(0, -1)}4`;
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow().replace(CHECKOUT_SHA, mutated));
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("SHA mismatch");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when setup-node SHA differs by one character", () => {
+    const mutated = `${SETUP_NODE_SHA.slice(0, -1)}1`;
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow().replace(SETUP_NODE_SHA, mutated));
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("SHA mismatch");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails on short SHAs", () => {
+    const shortSha = CHECKOUT_SHA.slice(0, 7);
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow().replace(CHECKOUT_SHA, shortSha));
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/invalid SHA length|non-SHA pin/);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails on mutable tag pins", () => {
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow().replace(CHECKOUT_SHA, "v4"));
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("mutable tag pin");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when the tag comment is missing", () => {
+    const workflow = buildValidPinWorkflow().replace(` # v4.2.2`, "");
+    const dir = scaffoldPinCheckDir(workflow);
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("tag comment mismatch");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when the tag comment is wrong", () => {
+    const workflow = buildValidPinWorkflow().replace("# v4.2.2", "# v4.2.1");
+    const dir = scaffoldPinCheckDir(workflow);
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("tag comment mismatch");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when the manifest and workflow disagree", () => {
+    const manifest = JSON.stringify(
+      {
+        "actions/checkout": { tag: "v4.2.2", sha: CHECKOUT_SHA },
+        "actions/setup-node": { tag: "v4.4.0", sha: "0000000000000000000000000000000000000000" },
+      },
+      null,
+      2,
+    );
+    const dir = scaffoldPinCheckDir(buildValidPinWorkflow(), manifest);
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("SHA mismatch");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails on unreviewed external actions", () => {
+    const workflow = `${buildValidPinWorkflow()}
+      - name: Cache
+        uses: actions/cache@deadbeefdeadbeefdeadbeefdeadbeefdeadbeef # v4.0.0`;
+    const dir = scaffoldPinCheckDir(workflow);
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("unreviewed external action actions/cache");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("permits local action references", () => {
+    const workflow = `${buildValidPinWorkflow()}
+      - name: Local action
+        uses: ./.github/actions/local`;
+    const dir = scaffoldPinCheckDir(workflow);
+    const result = runActionPinCheck(dir);
+    expect(result.status).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
   });
 });
 

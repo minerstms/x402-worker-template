@@ -105,6 +105,7 @@ npm run security:scan:all         # Run both scans
 npm run check:dependencies      # Exact pins, lockfile metadata, direct runtime imports
 npm run check:docs              # Public documentation consistency
 npm run check:license           # Verifies canonical Apache-2.0 LICENSE and package metadata
+npm run check:actions           # Verifies GitHub Actions full-SHA pins against the local manifest
 npm run release:check           # Full local release gate bundle
 npm run release:archive         # Create a safe git-archive ZIP plus SHA-256 checksum
 npm run verify:archive          # Verify a git-archive checkout with npm ci + tests + typechecks

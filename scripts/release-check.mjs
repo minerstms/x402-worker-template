@@ -7,6 +7,7 @@ const steps = [
   { label: "Dependency pin check", command: ["node", "scripts/check-dependency-pins.mjs"] },
   { label: "Documentation consistency check", command: ["node", "scripts/check-public-docs.mjs"] },
   { label: "License check", command: ["node", "scripts/check-license.mjs"] },
+  { label: "GitHub action pin check", command: ["node", "scripts/check-github-action-pins.mjs"] },
   { label: "Canonical repository check", command: ["node", "scripts/check-canonical-repo.mjs"] },
   { label: "Unit and integration tests", command: ["npm", "test"] },
   { label: "Typecheck", command: ["npm", "run", "typecheck"] },

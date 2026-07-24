@@ -41,6 +41,7 @@
     "check:dependencies": "node scripts/check-dependency-pins.mjs",
     "check:docs": "node scripts/check-public-docs.mjs",
     "check:license": "node scripts/check-license.mjs",
+    "check:actions": "node scripts/check-github-action-pins.mjs",
     "release:check": "node scripts/release-check.mjs",
     "release:archive": "node scripts/create-safe-archive.mjs"
   },
