@@ -35,6 +35,7 @@ import { formatPaidApiText } from "../src/browser/pay-receipt.js";
 import { containsPrivateData } from "../src/browser/sanitize-error.js";
 import {
   BASE_SEPOLIA_NETWORK,
+  BASE_USDBC_ASSET,
   MAINNET_CHAIN_ID_DECIMAL,
   MAINNET_USDC_EIP712_NAME,
   MAINNET_USDC_EIP712_VERSION,
@@ -145,13 +146,13 @@ describe("mainnet mocked browser recovery flow", () => {
       accepts: [
         {
           ...buildMatchedMainnetRequirement(),
-          asset: "0xd9aAEc86B65D86f4A9253D8C8b1c1c1c1c1c1c1c",
+          asset: BASE_USDBC_ASSET,
         },
       ],
     };
     expect(
       rejectNonMainnetPaymentTerms(wrongToken.accepts[0]!, MAINNET_TEST_SELLER),
-    ).toContain("Bridged");
+    ).toContain("USDbC");
 
     const wrongName = {
       ...validRequired,

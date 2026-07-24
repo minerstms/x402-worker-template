@@ -15,7 +15,9 @@ import {
   coordinatorAcquireVerifyLease,
   coordinatorCompleteFulfillment,
   coordinatorCompleteVerify,
-  coordinatorFailDefinitive,
+  coordinatorFailPostVerifyDefinitive,
+  coordinatorFailSettleDefinitive,
+  coordinatorFailVerifyDefinitive,
   coordinatorGetReplay,
   coordinatorMarkSettleUncertain,
   coordinatorMarkVerifyUncertain,
@@ -23,6 +25,7 @@ import {
   coordinatorStageResponse,
 } from "../durable/payment-coordinator-client.js";
 import type { LeaseAcquireResult } from "../durable/payment-attempt-types.js";
+import { MAINNET_SAFE_RESPONSE_HEADERS } from "../http-security-headers.js";
 import {
   ALLOWED_STAGED_CONTENT_TYPE,
   STAGED_RESPONSE_MAX_BYTES,
@@ -84,10 +87,23 @@ function jsonResponse(
     status,
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "no-store",
+      ...MAINNET_SAFE_RESPONSE_HEADERS,
       ...headers,
     },
   });
+}
+
+function coordinatorUnavailableResponse(): Response {
+  return jsonResponse(
+    {
+      success: false,
+      error: {
+        code: "COORDINATOR_UNAVAILABLE",
+        message: "Payment coordination is temporarily unavailable.",
+      },
+    },
+    503,
+  );
 }
 
 function paymentRequiredResponse(
@@ -99,30 +115,28 @@ function paymentRequiredResponse(
   });
 }
 
-function inProgressResponse(paymentIdentifier: string): Response {
+function inProgressResponse(): Response {
   return jsonResponse(
     {
       success: false,
       error: {
         code: "PAYMENT_IN_PROGRESS",
         message:
-          "Payment is being processed. Poll /pay/status/:paymentIdentifier for updates.",
-        paymentIdentifier,
+          "Payment is being processed. Poll /pay/status with your saved payment identifier for updates.",
       },
     },
     202,
   );
 }
 
-function uncertainResponse(paymentIdentifier: string): Response {
+function uncertainResponse(): Response {
   return jsonResponse(
     {
       success: false,
       error: {
         code: "PAYMENT_UNCERTAIN",
         message:
-          "Payment outcome is uncertain. Poll /pay/status/:paymentIdentifier for updates.",
-        paymentIdentifier,
+          "Payment outcome is uncertain. Poll /pay/status with your saved payment identifier for updates.",
         canRetry: false,
       },
     },
@@ -294,7 +308,12 @@ async function computeCanonicalKeys(
 }
 
 async function sanitizeCancel(
-  cancel: { cancel: (options: { reason: "handler_failed" | "after_verify_aborted" | "handler_threw"; error?: unknown }) => Promise<void> } | null,
+  cancel: {
+    cancel: (options: {
+      reason: "handler_failed" | "after_verify_aborted" | "handler_threw";
+      error?: unknown;
+    }) => Promise<void>;
+  } | null,
   reason: "handler_failed" | "after_verify_aborted" | "handler_threw",
   error?: unknown,
 ): Promise<void> {
@@ -472,16 +491,21 @@ export async function handleMainnetExamplePaidRequest(
     canonical.termsFingerprint,
   );
 
-  const prepareResult = await coordinatorPrepareAttempt(deps.coordinator, {
-    paymentIdentifier,
-    termsFingerprint: canonical.termsFingerprint,
-    authCommitment: canonical.authCommitment,
-    resourceIdentityHash: canonical.resourceIdentityHash,
-    authorizationNonce: authorizationResult.authorization.nonce,
-    network: matchedRequirement.network,
-    asset: matchedRequirement.asset,
-    amount: matchedRequirement.amount,
-  });
+  let prepareResult;
+  try {
+    prepareResult = await coordinatorPrepareAttempt(deps.coordinator, {
+      paymentIdentifier,
+      termsFingerprint: canonical.termsFingerprint,
+      authCommitment: canonical.authCommitment,
+      resourceIdentityHash: canonical.resourceIdentityHash,
+      authorizationNonce: authorizationResult.authorization.nonce,
+      network: matchedRequirement.network,
+      asset: matchedRequirement.asset,
+      amount: matchedRequirement.amount,
+    });
+  } catch {
+    return coordinatorUnavailableResponse();
+  }
 
   if (prepareResult.kind === "conflict") {
     return conflictResponse(prepareResult.reason);
@@ -494,7 +518,7 @@ export async function handleMainnetExamplePaidRequest(
     if (replay.ok) {
       return fulfilledReplayToHttpResponse(replay);
     }
-    return uncertainResponse(paymentIdentifier);
+    return uncertainResponse();
   }
   if (prepareResult.kind === "failed") {
     return buildPaymentErrorFromRequired(
@@ -505,214 +529,234 @@ export async function handleMainnetExamplePaidRequest(
     );
   }
   if (prepareResult.kind === "uncertain") {
-    return uncertainResponse(paymentIdentifier);
+    return uncertainResponse();
   }
   if (prepareResult.kind === "wait") {
-    return inProgressResponse(paymentIdentifier);
+    return inProgressResponse();
   }
 
-  const verifyLease = await coordinatorAcquireVerifyLease(deps.coordinator, {
-    recordKey,
-  });
-  if (verifyLease.kind !== "acquired") {
-    return inProgressResponse(paymentIdentifier);
-  }
-
-  let cancellationDispatcher: ReturnType<
-    x402ResourceServer["createPaymentCancellationDispatcher"]
-  > | null = null;
-
+  let verifyLease: LeaseAcquireResult & { kind: "acquired" };
   try {
-    const verifyResult = await resourceServer.verifyPayment(
+    const lease = await coordinatorAcquireVerifyLease(deps.coordinator, {
+      recordKey,
+    });
+    if (lease.kind !== "acquired") {
+      return inProgressResponse();
+    }
+    verifyLease = lease;
+  } catch {
+    return coordinatorUnavailableResponse();
+  }
+
+  let verifyResult;
+  try {
+    verifyResult = await resourceServer.verifyPayment(
       paymentPayload,
       matchedRequirement,
       routeConfig.extensions,
       httpContext,
     );
-
-    if (!verifyResult.isValid) {
-      await coordinatorFailDefinitive(deps.coordinator, {
-        recordKey,
-        failureCategory: verifyResult.invalidReason ?? "verify_invalid",
-      });
-      return buildPaymentErrorFromRequired(
-        ctx,
-        value,
-        verifyResult.invalidReason ?? "Payment verification failed.",
-        paymentPayload,
-      );
-    }
-
-    const completeVerify = await coordinatorCompleteVerify(deps.coordinator, {
-      recordKey,
-      operationGeneration: verifyLease.operationGeneration,
-      operationToken: verifyLease.operationToken,
-    });
-    if (completeVerify.kind !== "completed") {
-      return uncertainResponse(paymentIdentifier);
-    }
-
-    cancellationDispatcher = resourceServer.createPaymentCancellationDispatcher(
-      paymentPayload,
-      matchedRequirement,
-      routeConfig.extensions,
-      httpContext,
-    );
-
-    const buildResponse = deps.buildResponse ?? buildMainnetExampleResponse;
-    let responseBody: Record<string, unknown>;
-    try {
-      responseBody = buildResponse(value);
-    } catch (error) {
-      await sanitizeCancel(cancellationDispatcher, "handler_failed", error);
-      await coordinatorFailDefinitive(deps.coordinator, {
-        recordKey,
-        failureCategory: "response_construction_failed",
-      });
-      return buildPaymentErrorFromRequired(
-        ctx,
-        value,
-        "Unable to construct paid response.",
-        paymentPayload,
-      );
-    }
-
-    const bodyJson = JSON.stringify(responseBody);
-    if (new TextEncoder().encode(bodyJson).byteLength > STAGED_RESPONSE_MAX_BYTES) {
-      await sanitizeCancel(cancellationDispatcher, "handler_failed");
-      await coordinatorFailDefinitive(deps.coordinator, {
-        recordKey,
-        failureCategory: "response_too_large",
-      });
-      return buildPaymentErrorFromRequired(
-        ctx,
-        value,
-        "Paid response exceeds staging limit.",
-        paymentPayload,
-      );
-    }
-
-    const staged = await coordinatorStageResponse(deps.coordinator, {
-      recordKey,
-      body: bodyJson,
-      contentType: ALLOWED_STAGED_CONTENT_TYPE,
-    });
-    if (staged.kind !== "staged") {
-      await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
-      await coordinatorFailDefinitive(deps.coordinator, {
-        recordKey,
-        failureCategory: "stage_response_failed",
-      });
-      return buildPaymentErrorFromRequired(
-        ctx,
-        value,
-        "Unable to stage paid response.",
-        paymentPayload,
-      );
-    }
-
-    const settleLease = await acquireSettleLeaseOrWait(
-      deps.coordinator,
-      recordKey,
-      paymentIdentifier,
-    );
-    if (settleLease.kind !== "acquired") {
-      return settleLease.response;
-    }
-
-    let settleResponse;
-    try {
-      settleResponse = await resourceServer.settlePayment(
-        paymentPayload,
-        matchedRequirement,
-        routeConfig.extensions,
-        httpContext,
-      );
-    } catch {
-      await coordinatorMarkSettleUncertain(deps.coordinator, {
-        recordKey,
-        operationGeneration: settleLease.operationGeneration,
-        operationToken: settleLease.operationToken,
-      });
-      return uncertainResponse(paymentIdentifier);
-    }
-
-    if (!settleResponse.success) {
-      await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
-      await coordinatorFailDefinitive(deps.coordinator, {
-        recordKey,
-        failureCategory: settleResponse.errorReason ?? "settle_failed",
-      });
-      return buildPaymentErrorFromRequired(
-        ctx,
-        value,
-        settleResponse.errorReason ?? "Settlement failed.",
-        paymentPayload,
-      );
-    }
-
-    const receiptValidation = validateSettlementReceiptForStorage(settleResponse);
-    if (!receiptValidation.ok) {
-      await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
-      await coordinatorMarkSettleUncertain(deps.coordinator, {
-        recordKey,
-        operationGeneration: settleLease.operationGeneration,
-        operationToken: settleLease.operationToken,
-      });
-      return uncertainResponse(paymentIdentifier);
-    }
-
-    const completion = await completeFulfillmentWithRetries(deps.coordinator, {
-      recordKey,
-      operationGeneration: settleLease.operationGeneration,
-      operationToken: settleLease.operationToken,
-      settlementReceipt: receiptValidation.receipt,
-    });
-
-    const paymentResponseHeader = encodePaymentResponseHeader(settleResponse);
-    if (completion.ok) {
-      return jsonResponse(responseBody, 200, {
-        "PAYMENT-RESPONSE": paymentResponseHeader,
-      });
-    }
-
-    await coordinatorMarkSettleUncertain(deps.coordinator, {
-      recordKey,
-      operationGeneration: settleLease.operationGeneration,
-      operationToken: settleLease.operationToken,
-    });
-
-    return jsonResponse(responseBody, 200, {
-      "PAYMENT-RESPONSE": paymentResponseHeader,
-    });
   } catch {
     await coordinatorMarkVerifyUncertain(deps.coordinator, {
       recordKey,
       operationGeneration: verifyLease.operationGeneration,
       operationToken: verifyLease.operationToken,
     });
-    return uncertainResponse(paymentIdentifier);
+    return uncertainResponse();
   }
-}
 
-async function acquireSettleLeaseOrWait(
-  coordinator: DurableObjectNamespace,
-  recordKey: string,
-  paymentIdentifier: string,
-): Promise<
-  | (LeaseAcquireResult & { kind: "acquired" })
-  | { kind: "wait"; response: Response }
-> {
-  const settleLease = await coordinatorAcquireSettleLease(coordinator, {
-    recordKey,
-  });
-  if (settleLease.kind === "acquired") {
-    return settleLease;
+  if (!verifyResult.isValid) {
+    await coordinatorFailVerifyDefinitive(deps.coordinator, {
+      recordKey,
+      operationGeneration: verifyLease.operationGeneration,
+      operationToken: verifyLease.operationToken,
+      failureCategory: verifyResult.invalidReason ?? "verify_invalid",
+    });
+    return buildPaymentErrorFromRequired(
+      ctx,
+      value,
+      verifyResult.invalidReason ?? "Payment verification failed.",
+      paymentPayload,
+    );
   }
-  return {
-    kind: "wait",
-    response: inProgressResponse(paymentIdentifier),
-  };
+
+  let completeVerify;
+  try {
+    completeVerify = await coordinatorCompleteVerify(deps.coordinator, {
+      recordKey,
+      operationGeneration: verifyLease.operationGeneration,
+      operationToken: verifyLease.operationToken,
+    });
+  } catch {
+    return coordinatorUnavailableResponse();
+  }
+  if (completeVerify.kind !== "completed") {
+    return uncertainResponse();
+  }
+
+  const cancellationDispatcher = resourceServer.createPaymentCancellationDispatcher(
+    paymentPayload,
+    matchedRequirement,
+    routeConfig.extensions,
+    httpContext,
+  );
+
+  const buildResponse = deps.buildResponse ?? buildMainnetExampleResponse;
+  let responseBody: Record<string, unknown>;
+  try {
+    responseBody = buildResponse(value);
+  } catch (error) {
+    await sanitizeCancel(cancellationDispatcher, "handler_failed", error);
+    await coordinatorFailPostVerifyDefinitive(deps.coordinator, {
+      recordKey,
+      operationGeneration: verifyLease.operationGeneration,
+      operationToken: verifyLease.operationToken,
+      failureCategory: "response_construction_failed",
+    });
+    return buildPaymentErrorFromRequired(
+      ctx,
+      value,
+      "Unable to construct paid response.",
+      paymentPayload,
+    );
+  }
+
+  const bodyJson = JSON.stringify(responseBody);
+  if (new TextEncoder().encode(bodyJson).byteLength > STAGED_RESPONSE_MAX_BYTES) {
+    await sanitizeCancel(cancellationDispatcher, "handler_failed");
+    await coordinatorFailPostVerifyDefinitive(deps.coordinator, {
+      recordKey,
+      operationGeneration: verifyLease.operationGeneration,
+      operationToken: verifyLease.operationToken,
+      failureCategory: "response_too_large",
+    });
+    return buildPaymentErrorFromRequired(
+      ctx,
+      value,
+      "Paid response exceeds staging limit.",
+      paymentPayload,
+    );
+  }
+
+  let staged;
+  try {
+    staged = await coordinatorStageResponse(deps.coordinator, {
+      recordKey,
+      body: bodyJson,
+      contentType: ALLOWED_STAGED_CONTENT_TYPE,
+    });
+  } catch {
+    await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
+    return coordinatorUnavailableResponse();
+  }
+  if (staged.kind !== "staged") {
+    await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
+    await coordinatorFailPostVerifyDefinitive(deps.coordinator, {
+      recordKey,
+      operationGeneration: verifyLease.operationGeneration,
+      operationToken: verifyLease.operationToken,
+      failureCategory: "stage_response_failed",
+    });
+    return buildPaymentErrorFromRequired(
+      ctx,
+      value,
+      "Unable to stage paid response.",
+      paymentPayload,
+    );
+  }
+
+  let settleLease: LeaseAcquireResult & { kind: "acquired" };
+  try {
+    const lease = await coordinatorAcquireSettleLease(deps.coordinator, {
+      recordKey,
+    });
+    if (lease.kind !== "acquired") {
+      return inProgressResponse();
+    }
+    settleLease = lease;
+  } catch {
+    return coordinatorUnavailableResponse();
+  }
+
+  let settleResponse;
+  try {
+    settleResponse = await resourceServer.settlePayment(
+      paymentPayload,
+      matchedRequirement,
+      routeConfig.extensions,
+      httpContext,
+    );
+  } catch {
+    await coordinatorMarkSettleUncertain(deps.coordinator, {
+      recordKey,
+      operationGeneration: settleLease.operationGeneration,
+      operationToken: settleLease.operationToken,
+    });
+    return uncertainResponse();
+  }
+
+  if (!settleResponse.success) {
+    await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
+    await coordinatorFailSettleDefinitive(deps.coordinator, {
+      recordKey,
+      operationGeneration: settleLease.operationGeneration,
+      operationToken: settleLease.operationToken,
+      failureCategory: settleResponse.errorReason ?? "settle_failed",
+    });
+    return buildPaymentErrorFromRequired(
+      ctx,
+      value,
+      settleResponse.errorReason ?? "Settlement failed.",
+      paymentPayload,
+    );
+  }
+
+  const receiptValidation = validateSettlementReceiptForStorage(settleResponse);
+  if (!receiptValidation.ok) {
+    await sanitizeCancel(cancellationDispatcher, "after_verify_aborted");
+    await coordinatorMarkSettleUncertain(deps.coordinator, {
+      recordKey,
+      operationGeneration: settleLease.operationGeneration,
+      operationToken: settleLease.operationToken,
+    });
+    return uncertainResponse();
+  }
+
+  let completion: { ok: true } | { ok: false; attempts: number };
+  try {
+    completion = await completeFulfillmentWithRetries(deps.coordinator, {
+      recordKey,
+      operationGeneration: settleLease.operationGeneration,
+      operationToken: settleLease.operationToken,
+      settlementReceipt: receiptValidation.receipt,
+    });
+  } catch {
+    await coordinatorMarkSettleUncertain(deps.coordinator, {
+      recordKey,
+      operationGeneration: settleLease.operationGeneration,
+      operationToken: settleLease.operationToken,
+    });
+    return jsonResponse(responseBody, 200, {
+      "PAYMENT-RESPONSE": encodePaymentResponseHeader(settleResponse),
+    });
+  }
+
+  const paymentResponseHeader = encodePaymentResponseHeader(settleResponse);
+  if (completion.ok) {
+    return jsonResponse(responseBody, 200, {
+      "PAYMENT-RESPONSE": paymentResponseHeader,
+    });
+  }
+
+  await coordinatorMarkSettleUncertain(deps.coordinator, {
+    recordKey,
+    operationGeneration: settleLease.operationGeneration,
+    operationToken: settleLease.operationToken,
+  });
+
+  return jsonResponse(responseBody, 200, {
+    "PAYMENT-RESPONSE": paymentResponseHeader,
+  });
 }
 
 export async function handleMainnetExampleRequest(

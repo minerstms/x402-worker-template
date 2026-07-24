@@ -17,7 +17,11 @@ export const MAINNET_PAID_QUERY_KEY = "value" as const;
 export const MAINNET_PAYMENT_IDENTIFIER_REQUIRED = true;
 
 export const BASE_SEPOLIA_NETWORK = "eip155:84532";
-export const BRIDGED_BASE_USDC = "0xd9aAEc86B65D86f4A9253D8C8b1c1c1c1c1c1c1c";
+/** Legacy bridged Base USDbC (not native USDC). Source: https://www.circle.com/blog/usdc-now-available-natively-on-base */
+export const BASE_USDBC_ASSET = "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA" as const;
+/** Pre-correction placeholder — not authoritative; retained for regression tests only. */
+export const LEGACY_INCORRECT_USDBC_PLACEHOLDER =
+  "0xd9aAEc86B65D86f4A9253D8C8b1c1c1c1c1c1c1c" as const;
 export const BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 
 export type MainnetPolicyConfig = {
@@ -104,8 +108,14 @@ export function rejectNonMainnetPaymentTerms(
   if (requirement.network !== MAINNET_NETWORK) {
     return "Only Base mainnet (eip155:8453) is accepted.";
   }
-  if (normalizeAddress(requirement.asset) === normalizeAddress(BRIDGED_BASE_USDC)) {
-    return "Bridged Base USDC is not accepted.";
+  if (normalizeAddress(requirement.asset) === normalizeAddress(BASE_USDBC_ASSET)) {
+    return "Bridged Base USDbC is not accepted.";
+  }
+  if (
+    normalizeAddress(requirement.asset) ===
+    normalizeAddress(LEGACY_INCORRECT_USDBC_PLACEHOLDER)
+  ) {
+    return "Unsupported asset address.";
   }
   if (normalizeAddress(requirement.asset) === normalizeAddress(BASE_SEPOLIA_USDC)) {
     return "Test USDC is not accepted.";

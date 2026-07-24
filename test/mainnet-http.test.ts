@@ -26,6 +26,8 @@ describe("mainnet worker HTTP surface via Miniflare", () => {
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ state: "not_seen" });
     expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     await mf.dispose();
   });
 
@@ -54,6 +56,8 @@ describe("mainnet worker HTTP surface via Miniflare", () => {
     expect(body).not.toHaveProperty("authCommitment");
     expect(body).not.toHaveProperty("operationToken");
     expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(res.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     await mf.dispose();
   });
 

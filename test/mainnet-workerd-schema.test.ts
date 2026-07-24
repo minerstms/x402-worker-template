@@ -18,6 +18,8 @@ import {
 import { validateMainnetSettlementMetadata } from "../src/mainnet/browser/mainnet-pay-settlement.js";
 import {
   BASE_SEPOLIA_NETWORK,
+  BASE_USDBC_ASSET,
+  LEGACY_INCORRECT_USDBC_PLACEHOLDER,
   MAINNET_USDC_EIP712_NAME,
   MAINNET_USDC_EIP712_VERSION,
   rejectNonMainnetPaymentTerms,
@@ -104,10 +106,16 @@ describe("mainnet payment identifier worker-safe validation", () => {
     ).toContain("Sepolia");
     expect(
       rejectNonMainnetPaymentTerms(
-        { ...base, asset: "0xd9aAEc86B65D86f4A9253D8C8b1c1c1c1c1c1c1c" },
+        { ...base, asset: BASE_USDBC_ASSET },
         MAINNET_TEST_SELLER,
       ),
-    ).toContain("Bridged");
+    ).toContain("USDbC");
+    expect(
+      rejectNonMainnetPaymentTerms(
+        { ...base, asset: LEGACY_INCORRECT_USDBC_PLACEHOLDER },
+        MAINNET_TEST_SELLER,
+      ),
+    ).toContain("Unsupported asset");
     expect(
       rejectNonMainnetPaymentTerms({ ...base, amount: "2000" }, MAINNET_TEST_SELLER),
     ).toContain("1000 atomic units");

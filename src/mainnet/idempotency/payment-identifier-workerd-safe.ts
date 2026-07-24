@@ -1,3 +1,13 @@
+/**
+ * Validates payment-identifier extension structure without runtime JSON Schema
+ * compilation. Mirrors the hand-written checks in @x402/extensions
+ * validatePaymentIdentifier() and enforces the same constraints as
+ * paymentIdentifierSchema without invoking AJV.
+ *
+ * This module intentionally avoids runtime AJV compilation for workerd safety.
+ * Any upgrade to @x402/extensions requires a parity review against
+ * test/mainnet-payment-identifier-drift.test.ts before release.
+ */
 import type { PaymentPayload } from "@x402/core/types";
 import {
   PAYMENT_IDENTIFIER,
@@ -9,12 +19,6 @@ export type WorkerdSafePaymentIdentifierValidation =
   | { valid: true }
   | { valid: false; errors: string[] };
 
-/**
- * Validates payment-identifier extension structure without runtime JSON Schema
- * compilation. Mirrors the hand-written checks in @x402/extensions
- * validatePaymentIdentifier() and enforces the same constraints as
- * paymentIdentifierSchema without invoking AJV.
- */
 export function validatePaymentIdentifierExtensionWithoutSchemaCompile(
   extension: unknown,
 ): WorkerdSafePaymentIdentifierValidation {

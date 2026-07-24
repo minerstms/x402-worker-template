@@ -51,9 +51,25 @@ export type StageResponseResult =
   | { kind: "staged"; recordKey: string }
   | { kind: "rejected"; reason: string };
 
-export type FailDefinitiveResult =
+export type AuthenticatedFailureResult =
   | { kind: "failed"; recordKey: string }
-  | { kind: "rejected"; reason: string };
+  | { kind: "stale"; reason: string };
+
+export type FailVerifyDefinitiveParams = {
+  recordKey: string;
+  operationGeneration: number;
+  operationToken: string;
+  failureCategory?: string | null;
+};
+
+export type FailPostVerifyDefinitiveParams = FailVerifyDefinitiveParams;
+
+export type FailSettleDefinitiveParams = {
+  recordKey: string;
+  operationGeneration: number;
+  operationToken: string;
+  failureCategory?: string | null;
+};
 
 export type PaymentAttemptRow = {
   record_key: string;
@@ -142,8 +158,16 @@ export type CoordinatorRpcRequest =
       };
     }
   | {
-      method: "failDefinitive";
-      params: { recordKey: string; failureCategory?: string | null };
+      method: "failVerifyDefinitive";
+      params: FailVerifyDefinitiveParams;
+    }
+  | {
+      method: "failPostVerifyDefinitive";
+      params: FailPostVerifyDefinitiveParams;
+    }
+  | {
+      method: "failSettleDefinitive";
+      params: FailSettleDefinitiveParams;
     }
   | { method: "getReplay"; params: { recordKey: string } }
   | { method: "getStatusByPaymentIdentifier"; params: { paymentIdentifier: string } }

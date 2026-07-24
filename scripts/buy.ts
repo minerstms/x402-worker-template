@@ -8,6 +8,7 @@ import {
   formatBuyerSuccessOutput,
   runBuyerPayment,
 } from "../src/buyer-run.js";
+import { formatSafeCliErrorJson } from "../src/cli/safe-cli-error.js";
 
 async function main(): Promise<void> {
   const result = await runBuyerPayment();
@@ -41,21 +42,10 @@ const invokedDirectly =
 if (invokedDirectly) {
   main().catch((error) => {
     console.error(
-      JSON.stringify(
-        {
-          level: "error",
-          message: "Buyer script failed. Check configuration and try again.",
-          diagnostic: {
-            stage: "emit_success_output",
-            message:
-              error instanceof Error
-                ? error.message.slice(0, 240)
-                : "Unhandled buyer script failure",
-          },
-        },
-        null,
-        2,
-      ),
+      formatSafeCliErrorJson({
+        stage: "buy_script",
+        error,
+      }),
     );
     process.exitCode = 1;
   });

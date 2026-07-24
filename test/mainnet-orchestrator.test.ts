@@ -10,6 +10,7 @@ import {
 import { buildSafePaymentStatusBody } from "../src/mainnet/routes/pay-status.js";
 import {
   BASE_SEPOLIA_NETWORK,
+  BASE_USDBC_ASSET,
   MAINNET_NETWORK,
   MAINNET_PAYMENT_AMOUNT,
   MAINNET_USDC_ASSET,
@@ -54,10 +55,16 @@ describe("mainnet payment policy", () => {
     );
     expect(
       rejectNonMainnetPaymentTerms(
+        { ...base, asset: BASE_USDBC_ASSET },
+        MAINNET_TEST_SELLER,
+      ),
+    ).toContain("USDbC");
+    expect(
+      rejectNonMainnetPaymentTerms(
         { ...base, asset: "0xd9aAEc86B65D86f4A9253D8C8b1c1c1c1c1c1c1c" },
         MAINNET_TEST_SELLER,
       ),
-    ).toContain("Bridged");
+    ).toContain("Unsupported asset");
     expect(
       rejectNonMainnetPaymentTerms({ ...base, extra: { name: "USDC", version: "2" } }, MAINNET_TEST_SELLER),
     ).toContain("USDC");

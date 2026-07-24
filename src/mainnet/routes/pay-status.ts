@@ -5,6 +5,7 @@ import type {
   FulfilledStatusResult,
   PaymentAttemptState,
 } from "../durable/payment-attempt-types.js";
+import { MAINNET_SAFE_RESPONSE_HEADERS } from "../http-security-headers.js";
 import { validatePaymentIdentifierForLookup } from "../idempotency/payment-identifier.js";
 
 export type SafePaymentStatusBody = {
@@ -115,7 +116,7 @@ export async function payStatusHandler(c: Context) {
     return c.json(
       { state: "not_seen" satisfies SafePaymentStatusBody["state"] },
       404,
-      { "Cache-Control": "no-store" },
+      MAINNET_SAFE_RESPONSE_HEADERS,
     );
   }
 
@@ -125,9 +126,7 @@ export async function payStatusHandler(c: Context) {
   );
   const result = buildStatusBody(snapshot);
 
-  return c.json(result.body, result.status as 200 | 404 | 410, {
-    "Cache-Control": "no-store",
-  });
+  return c.json(result.body, result.status as 200 | 404 | 410, MAINNET_SAFE_RESPONSE_HEADERS);
 }
 
 export function buildSafePaymentStatusBody(

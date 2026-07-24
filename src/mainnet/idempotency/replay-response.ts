@@ -51,6 +51,8 @@ export function buildFulfilledReplayResponse(
   };
 }
 
+import { MAINNET_SAFE_RESPONSE_HEADERS } from "../http-security-headers.js";
+
 export function fulfilledReplayToHttpResponse(
   replay: Extract<FulfilledReplayResult, { ok: true }>,
 ): Response {
@@ -59,7 +61,7 @@ export function fulfilledReplayToHttpResponse(
     headers: {
       "Content-Type": replay.contentType,
       "PAYMENT-RESPONSE": replay.paymentResponseHeader,
-      "Cache-Control": "no-store",
+      ...MAINNET_SAFE_RESPONSE_HEADERS,
     },
   });
 }

@@ -2,6 +2,7 @@
  * Read-only buyer preflight diagnostics. Does not sign or submit payment.
  */
 import { runBuyerPreflight } from "../src/buyer-preflight.js";
+import { formatSafeCliErrorJson } from "../src/cli/safe-cli-error.js";
 
 async function main(): Promise<void> {
   const report = await runBuyerPreflight();
@@ -13,19 +14,16 @@ async function main(): Promise<void> {
 
 main().catch((error) => {
   console.error(
-    JSON.stringify(
-      {
+    formatSafeCliErrorJson({
+      stage: "buyer_preflight",
+      message: "Preflight command failed.",
+      error,
+      extra: {
         mode: "buyer_preflight",
         overall: "FAIL",
         hardStop: true,
-        message:
-          error instanceof Error
-            ? error.message.slice(0, 240)
-            : "Preflight command failed unexpectedly.",
       },
-      null,
-      2,
-    ),
+    }),
   );
   process.exitCode = 1;
 });

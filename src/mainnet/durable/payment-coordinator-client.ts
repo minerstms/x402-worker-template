@@ -2,10 +2,13 @@
 
 import { COORDINATOR_DO_NAME } from "../mainnet-config.js";
 import type {
+  AuthenticatedFailureResult,
   CompletionResult,
   CoordinatorRpcRequest,
   CoordinatorRpcResponse,
-  FailDefinitiveResult,
+  FailPostVerifyDefinitiveParams,
+  FailSettleDefinitiveParams,
+  FailVerifyDefinitiveParams,
   LeaseAcquireResult,
   PaymentStatusSnapshot,
   PrepareAttemptInput,
@@ -14,6 +17,38 @@ import type {
 } from "./payment-attempt-types.js";
 
 const RPC_URL = "https://payment-coordinator.internal/rpc";
+
+export type CoordinatorFailureInjectionPoint =
+  | "prepareAttempt"
+  | "acquireVerifyLease"
+  | "completeVerify"
+  | "stageResponse"
+  | "acquireSettleLease"
+  | "completeFulfillment"
+  | "markVerifyUncertain"
+  | "markSettleUncertain";
+
+export type CoordinatorFailureInjection = Partial<
+  Record<CoordinatorFailureInjectionPoint, () => void | Promise<void>>
+>;
+
+let coordinatorFailureInjection: CoordinatorFailureInjection | null = null;
+
+/** Test-only hook for deterministic coordinator failure injection. */
+export function setCoordinatorFailureInjectionForTests(
+  injection: CoordinatorFailureInjection | null,
+): void {
+  coordinatorFailureInjection = injection;
+}
+
+async function runCoordinatorFailureInjection(
+  point: CoordinatorFailureInjectionPoint,
+): Promise<void> {
+  const hook = coordinatorFailureInjection?.[point];
+  if (hook) {
+    await hook();
+  }
+}
 
 function getCoordinatorStub(namespace: DurableObjectNamespace) {
   const id = namespace.idFromName(COORDINATOR_DO_NAME);
@@ -47,6 +82,7 @@ export async function coordinatorPrepareAttempt(
   namespace: DurableObjectNamespace,
   input: PrepareAttemptInput,
 ): Promise<PrepareAttemptResult> {
+  await runCoordinatorFailureInjection("prepareAttempt");
   return callCoordinator(namespace, { method: "prepareAttempt", params: input });
 }
 
@@ -54,6 +90,7 @@ export async function coordinatorAcquireVerifyLease(
   namespace: DurableObjectNamespace,
   params: { recordKey: string; leaseExpiresAt?: string | null },
 ): Promise<LeaseAcquireResult> {
+  await runCoordinatorFailureInjection("acquireVerifyLease");
   return callCoordinator(namespace, {
     method: "acquireVerifyLease",
     params,
@@ -68,6 +105,7 @@ export async function coordinatorCompleteVerify(
     operationToken: string;
   },
 ): Promise<CompletionResult> {
+  await runCoordinatorFailureInjection("completeVerify");
   return callCoordinator(namespace, { method: "completeVerify", params });
 }
 
@@ -79,6 +117,7 @@ export async function coordinatorMarkVerifyUncertain(
     operationToken: string;
   },
 ): Promise<CompletionResult> {
+  await runCoordinatorFailureInjection("markVerifyUncertain");
   return callCoordinator(namespace, { method: "markVerifyUncertain", params });
 }
 
@@ -86,6 +125,7 @@ export async function coordinatorStageResponse(
   namespace: DurableObjectNamespace,
   params: { recordKey: string; body: string; contentType: string },
 ): Promise<StageResponseResult> {
+  await runCoordinatorFailureInjection("stageResponse");
   return callCoordinator(namespace, { method: "stageResponse", params });
 }
 
@@ -93,6 +133,7 @@ export async function coordinatorAcquireSettleLease(
   namespace: DurableObjectNamespace,
   params: { recordKey: string; leaseExpiresAt?: string | null },
 ): Promise<LeaseAcquireResult> {
+  await runCoordinatorFailureInjection("acquireSettleLease");
   return callCoordinator(namespace, {
     method: "acquireSettleLease",
     params,
@@ -108,6 +149,7 @@ export async function coordinatorCompleteFulfillment(
     settlementReceipt: unknown;
   },
 ): Promise<CompletionResult> {
+  await runCoordinatorFailureInjection("completeFulfillment");
   return callCoordinator(namespace, { method: "completeFulfillment", params });
 }
 
@@ -119,14 +161,32 @@ export async function coordinatorMarkSettleUncertain(
     operationToken: string;
   },
 ): Promise<CompletionResult> {
+  await runCoordinatorFailureInjection("markSettleUncertain");
   return callCoordinator(namespace, { method: "markSettleUncertain", params });
 }
 
-export async function coordinatorFailDefinitive(
+export async function coordinatorFailVerifyDefinitive(
   namespace: DurableObjectNamespace,
-  params: { recordKey: string; failureCategory?: string | null },
-): Promise<FailDefinitiveResult> {
-  return callCoordinator(namespace, { method: "failDefinitive", params });
+  params: FailVerifyDefinitiveParams,
+): Promise<AuthenticatedFailureResult> {
+  return callCoordinator(namespace, { method: "failVerifyDefinitive", params });
+}
+
+export async function coordinatorFailPostVerifyDefinitive(
+  namespace: DurableObjectNamespace,
+  params: FailPostVerifyDefinitiveParams,
+): Promise<AuthenticatedFailureResult> {
+  return callCoordinator(namespace, {
+    method: "failPostVerifyDefinitive",
+    params,
+  });
+}
+
+export async function coordinatorFailSettleDefinitive(
+  namespace: DurableObjectNamespace,
+  params: FailSettleDefinitiveParams,
+): Promise<AuthenticatedFailureResult> {
+  return callCoordinator(namespace, { method: "failSettleDefinitive", params });
 }
 
 export async function coordinatorGetReplay(

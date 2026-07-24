@@ -1,7 +1,19 @@
 const REDACT_KEY_PATTERN =
-  /(authorization|private|secret|signature|seed|mnemonic|token|api[_-]?key|payment-signature|payment-required)/i;
+  /(authorization|private|secret|signature|seed|mnemonic|token|api[_-]?key|payment-signature|payment-required|payment-identifier|wallet|nonce|payload)/i;
 
 const REDACTED = "[REDACTED]";
+
+const ALLOWED_LOG_FIELD_KEYS = [
+  "requestId",
+  "route",
+  "method",
+  "status",
+  "durationMs",
+  "upstreamStatus",
+  "paymentOutcome",
+  "code",
+  "message",
+] as const;
 
 export type LogLevel = "info" | "warn" | "error";
 
@@ -13,10 +25,8 @@ export type SafeLogFields = {
   durationMs?: number;
   upstreamStatus?: number;
   paymentOutcome?: string;
-  settlementTxHash?: string;
-  message?: string;
   code?: string;
-  [key: string]: unknown;
+  message?: string;
 };
 
 export function shouldRedactKey(key: string): boolean {
@@ -43,6 +53,17 @@ export function redactValue(value: unknown, key?: string): unknown {
   return value;
 }
 
+function pickAllowedLogFields(fields: SafeLogFields): SafeLogFields {
+  const out: SafeLogFields = {};
+  for (const key of ALLOWED_LOG_FIELD_KEYS) {
+    const value = fields[key];
+    if (value !== undefined) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 export function createRequestId(): string {
   return crypto.randomUUID();
 }
@@ -52,7 +73,7 @@ export function logStructured(
   fields: SafeLogFields,
   writer: (line: string) => void = defaultWriter,
 ): void {
-  const safe = redactValue(fields) as SafeLogFields;
+  const safe = redactValue(pickAllowedLogFields(fields)) as SafeLogFields;
   const line = JSON.stringify({
     level,
     ts: new Date().toISOString(),
@@ -67,4 +88,8 @@ function defaultWriter(line: string): void {
   } else {
     console.log(line);
   }
+}
+
+export function getAllowedLogFieldKeys(): readonly string[] {
+  return ALLOWED_LOG_FIELD_KEYS;
 }

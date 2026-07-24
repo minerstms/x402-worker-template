@@ -9,10 +9,13 @@ import {
   STAGED_RESPONSE_MAX_BYTES,
 } from "../mainnet-config.js";
 import type {
+  AuthenticatedFailureResult,
   CompletionResult,
   CoordinatorRpcRequest,
   CoordinatorRpcResponse,
-  FailDefinitiveResult,
+  FailPostVerifyDefinitiveParams,
+  FailSettleDefinitiveParams,
+  FailVerifyDefinitiveParams,
   FulfilledStatusResult,
   LeaseAcquireResult,
   PaymentAttemptRow,
@@ -173,8 +176,21 @@ export class PaymentCoordinatorDurableObject extends DurableObject {
           return { ok: true, result: this.completeFulfillment(request.params) };
         case "markSettleUncertain":
           return { ok: true, result: this.markSettleUncertain(request.params) };
-        case "failDefinitive":
-          return { ok: true, result: this.failDefinitive(request.params) };
+        case "failVerifyDefinitive":
+          return {
+            ok: true,
+            result: this.failVerifyDefinitive(request.params),
+          };
+        case "failPostVerifyDefinitive":
+          return {
+            ok: true,
+            result: this.failPostVerifyDefinitive(request.params),
+          };
+        case "failSettleDefinitive":
+          return {
+            ok: true,
+            result: this.failSettleDefinitive(request.params),
+          };
         case "getReplay":
           return { ok: true, result: this.getReplay(request.params.recordKey) };
         case "getStatusByPaymentIdentifier":
@@ -590,10 +606,9 @@ export class PaymentCoordinatorDurableObject extends DurableObject {
     return { kind: "completed", recordKey: params.recordKey, state: "uncertain" };
   }
 
-  private failDefinitive(params: {
-    recordKey: string;
-    failureCategory?: string | null;
-  }): FailDefinitiveResult {
+  private failVerifyDefinitive(
+    params: FailVerifyDefinitiveParams,
+  ): AuthenticatedFailureResult {
     const sql = this.ctx.storage.sql;
     const timestamp = nowIso();
     sql.exec(
@@ -604,14 +619,94 @@ export class PaymentCoordinatorDurableObject extends DurableObject {
         operation_kind = NULL,
         operation_token = NULL,
         updated_at = ?
-      WHERE record_key = ?`,
+      WHERE record_key = ?
+        AND operation_kind = 'verify'
+        AND operation_generation = ?
+        AND operation_token = ?
+        AND state = 'verifying'`,
       params.failureCategory ?? null,
       timestamp,
       params.recordKey,
+      params.operationGeneration,
+      params.operationToken,
     );
 
     if (sqlChanges(sql) !== 1) {
-      return { kind: "rejected", reason: "Record not found." };
+      return {
+        kind: "stale",
+        reason: "Verify definitive failure did not match an active verify lease.",
+      };
+    }
+
+    return { kind: "failed", recordKey: params.recordKey };
+  }
+
+  private failPostVerifyDefinitive(
+    params: FailPostVerifyDefinitiveParams,
+  ): AuthenticatedFailureResult {
+    const sql = this.ctx.storage.sql;
+    const timestamp = nowIso();
+    sql.exec(
+      `UPDATE payment_attempts SET
+        state = 'failed-definitive',
+        failure_category = ?,
+        lease_expires_at = NULL,
+        operation_kind = NULL,
+        operation_token = NULL,
+        updated_at = ?
+      WHERE record_key = ?
+        AND operation_kind = 'verify'
+        AND operation_generation = ?
+        AND operation_token = ?
+        AND state IN ('verified', 'computing')`,
+      params.failureCategory ?? null,
+      timestamp,
+      params.recordKey,
+      params.operationGeneration,
+      params.operationToken,
+    );
+
+    if (sqlChanges(sql) !== 1) {
+      return {
+        kind: "stale",
+        reason:
+          "Post-verify definitive failure did not match an authenticated verify operation.",
+      };
+    }
+
+    return { kind: "failed", recordKey: params.recordKey };
+  }
+
+  private failSettleDefinitive(
+    params: FailSettleDefinitiveParams,
+  ): AuthenticatedFailureResult {
+    const sql = this.ctx.storage.sql;
+    const timestamp = nowIso();
+    sql.exec(
+      `UPDATE payment_attempts SET
+        state = 'failed-definitive',
+        failure_category = ?,
+        lease_expires_at = NULL,
+        operation_kind = NULL,
+        operation_token = NULL,
+        updated_at = ?
+      WHERE record_key = ?
+        AND operation_kind = 'settle'
+        AND operation_generation = ?
+        AND operation_token = ?
+        AND state = 'settling'`,
+      params.failureCategory ?? null,
+      timestamp,
+      params.recordKey,
+      params.operationGeneration,
+      params.operationToken,
+    );
+
+    if (sqlChanges(sql) !== 1) {
+      return {
+        kind: "stale",
+        reason: "Settle definitive failure did not match an active settle lease.",
+      };
     }
 
     return { kind: "failed", recordKey: params.recordKey };

@@ -43,15 +43,31 @@ describe("logging redaction", () => {
       {
         requestId: "r1",
         route: "/v1/example",
-        api_key: "should-not-appear",
         paymentOutcome: "required",
       },
       (line) => lines.push(line),
     );
     expect(lines).toHaveLength(1);
     const parsed = JSON.parse(lines[0]!);
-    expect(parsed.api_key).toBe("[REDACTED]");
     expect(parsed.paymentOutcome).toBe("required");
+    expect(lines[0]).not.toContain("should-not-appear");
+  });
+
+  it("drops disallowed log fields at runtime", () => {
+    const lines: string[] = [];
+    logStructured(
+      "info",
+      {
+        requestId: "r1",
+        route: "/v1/example",
+        paymentOutcome: "required",
+        // @ts-expect-error negative test for runtime stripping
+        api_key: "should-not-appear",
+      },
+      (line) => lines.push(line),
+    );
+    const parsed = JSON.parse(lines[0]!) as Record<string, unknown>;
+    expect(parsed.api_key).toBeUndefined();
     expect(lines[0]).not.toContain("should-not-appear");
   });
 });
