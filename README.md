@@ -90,8 +90,10 @@ Mainnet remains unsupported and the production mainnet paid route remains disabl
 
 ## Toolchain
 
-- Node **22.20.1** (see `.nvmrc` and `package.json` `engines`)
-- npm pinned through `packageManager` in `package.json`
+- Node **22.23.1** (authoritative in `.nvmrc` and `package.json` `engines.node`)
+- npm **10.9.8** (authoritative in `package.json` `packageManager` and `engines.npm`)
+- Official Node 22 LTS release line (**Jod**)
+- CI verifies the exact Node and npm runtime versions after `setup-node`
 - Reproducible verification: `npm ci`, then the scripts in [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
 
 ## Public-release safety gates
@@ -103,6 +105,7 @@ npm run security:scan:tracked   # Scan tracked files only
 npm run security:scan:history   # Scan deduplicated Git blobs; prints formal history classification
 npm run security:scan:all         # Run both scans
 npm run check:dependencies      # Exact pins, lockfile metadata, direct runtime imports
+npm run check:runtime           # Verifies the executing Node/npm versions match the pinned toolchain
 npm run check:docs              # Public documentation consistency
 npm run check:license           # Verifies canonical Apache-2.0 LICENSE and package metadata
 npm run check:actions           # Verifies GitHub Actions full-SHA pins against the local manifest

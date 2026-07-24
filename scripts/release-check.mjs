@@ -5,6 +5,7 @@ const steps = [
   { label: "Tracked security scan", command: ["node", "scripts/security-scan.mjs", "--tracked"] },
   { label: "History security scan", command: ["node", "scripts/security-scan.mjs", "--history"] },
   { label: "Dependency pin check", command: ["node", "scripts/check-dependency-pins.mjs"] },
+  { label: "Runtime toolchain check", command: ["node", "scripts/check-runtime-toolchain.mjs"] },
   { label: "Documentation consistency check", command: ["node", "scripts/check-public-docs.mjs"] },
   { label: "License check", command: ["node", "scripts/check-license.mjs"] },
   { label: "GitHub action pin check", command: ["node", "scripts/check-github-action-pins.mjs"] },

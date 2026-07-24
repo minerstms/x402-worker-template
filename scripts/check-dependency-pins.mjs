@@ -5,6 +5,7 @@ import { join, relative } from "node:path";
 const repoRoot = process.cwd();
 const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
 const lock = JSON.parse(readFileSync(join(repoRoot, "package-lock.json"), "utf8"));
+const toolchain = JSON.parse(readFileSync(join(repoRoot, ".github", "toolchain.json"), "utf8"));
 
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/;
 const REVIEWED_PACKAGES = {
@@ -14,6 +15,10 @@ const REVIEWED_PACKAGES = {
   "@x402/fetch": "2.19.0",
   "@x402/extensions": "2.19.0",
 };
+const MUTABLE_NODE_PATTERNS = [
+  /\bnode-version:\s*["']?(?:22|22\.x|lts\/\*|latest|current|node)["']?\b/i,
+  /\bcheck-latest:\s*true\b/i,
+];
 
 function fail(message) {
   console.error(message);
@@ -80,6 +85,64 @@ function scanDirectImports() {
   return offenders;
 }
 
+function validateToolchainManifest() {
+  if (!toolchain.node || !toolchain.npm) {
+    fail(".github/toolchain.json must define node and npm.");
+  }
+  if (!EXACT_VERSION.test(toolchain.node) || !EXACT_VERSION.test(toolchain.npm)) {
+    fail(".github/toolchain.json must use exact semver values for node and npm.");
+  }
+}
+
+function validateToolchainDeclarations() {
+  validateToolchainManifest();
+
+  const nvmrc = readFileSync(join(repoRoot, ".nvmrc"), "utf8").trim();
+  const expectedPackageManager = `npm@${toolchain.npm}`;
+
+  if (nvmrc !== toolchain.node) {
+    fail(`.nvmrc (${nvmrc}) must match toolchain manifest node (${toolchain.node})`);
+  }
+  if (pkg.engines?.node !== toolchain.node) {
+    fail(`engines.node (${pkg.engines?.node}) must match toolchain manifest node (${toolchain.node})`);
+  }
+  if (pkg.packageManager !== expectedPackageManager) {
+    fail(
+      `packageManager (${pkg.packageManager}) must match toolchain manifest npm (${expectedPackageManager})`,
+    );
+  }
+  if (pkg.engines?.npm !== toolchain.npm) {
+    fail(`engines.npm (${pkg.engines?.npm}) must match toolchain manifest npm (${toolchain.npm})`);
+  }
+  if (nvmrc !== pkg.engines?.node) {
+    fail(`.nvmrc (${nvmrc}) must match engines.node (${pkg.engines?.node})`);
+  }
+
+  const rootLock = lock.packages?.[""];
+  if (rootLock?.engines?.node !== toolchain.node) {
+    fail(`package-lock.json engines.node must match toolchain manifest node (${toolchain.node})`);
+  }
+  if (rootLock?.engines?.npm !== toolchain.npm) {
+    fail(`package-lock.json engines.npm must match toolchain manifest npm (${toolchain.npm})`);
+  }
+}
+
+function validateWorkflowToolchain() {
+  const workflowsDir = join(repoRoot, ".github", "workflows");
+  for (const name of readdirSync(workflowsDir)) {
+    if (!/\.ya?ml$/i.test(name)) continue;
+    const content = readFileSync(join(workflowsDir, name), "utf8");
+    if (!content.includes("node-version-file: .nvmrc") && !content.includes('node-version-file: ".nvmrc"')) {
+      fail(`${name} must use node-version-file: .nvmrc for Node selection`);
+    }
+    for (const pattern of MUTABLE_NODE_PATTERNS) {
+      if (pattern.test(content)) {
+        fail(`${name} contains a mutable Node toolchain alias`);
+      }
+    }
+  }
+}
+
 function main() {
   if (pkg.private !== true) {
     fail("package.json must keep private: true");
@@ -98,6 +161,9 @@ function main() {
     fail("package-lock.json missing root package metadata");
   }
 
+  validateToolchainDeclarations();
+  validateWorkflowToolchain();
+
   for (const section of ["dependencies", "devDependencies"]) {
     for (const [name, version] of Object.entries(pkg[section] ?? {})) {
       if (!EXACT_VERSION.test(version)) {
@@ -115,11 +181,6 @@ function main() {
     if (pkg.dependencies?.[name] !== version) {
       fail(`Reviewed package ${name} must remain pinned to ${version}`);
     }
-  }
-
-  const nvmrc = readFileSync(join(repoRoot, ".nvmrc"), "utf8").trim();
-  if (pkg.engines?.node !== nvmrc) {
-    fail(`.nvmrc (${nvmrc}) must match engines.node (${pkg.engines?.node})`);
   }
 
   const offenders = scanDirectImports();

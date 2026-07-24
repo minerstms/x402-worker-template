@@ -59,6 +59,7 @@ function main(): void {
     extractZip(archiveZip, archiveRoot);
 
     run("npm ci", archiveRoot);
+    run("npm run check:runtime", archiveRoot);
     run("npm run check:actions", archiveRoot);
     run("npm test", archiveRoot);
     run("npm run typecheck", archiveRoot);

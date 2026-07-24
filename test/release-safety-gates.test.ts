@@ -213,15 +213,25 @@ describe("documentation consistency gate", () => {
 });
 
 describe("dependency pin gate", () => {
+  function writeToolchainFixture(dir: string): void {
+    mkdirSync(join(dir, ".github"), { recursive: true });
+    writeFileSync(join(dir, ".nvmrc"), "22.23.1\n");
+    writeFileSync(
+      join(dir, ".github", "toolchain.json"),
+      JSON.stringify({ node: "22.23.1", npm: "10.9.8", releaseLine: "22", lts: "Jod" }, null, 2),
+    );
+  }
+
   it("fails dependency ranges", () => {
     const dir = mkdtempSync(join(tmpdir(), "deps-gate-"));
+    writeToolchainFixture(dir);
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify(
         {
           private: true,
-          packageManager: "npm@11.13.0",
-          engines: { node: "22.20.1" },
+          packageManager: "npm@10.9.8",
+          engines: { node: "22.23.1", npm: "10.9.8" },
           dependencies: { hono: "^4.12.31" },
         },
         null,
@@ -260,19 +270,20 @@ describe("dependency pin gate", () => {
   it("requires packageManager and matching lockfile metadata", () => {
     const pkg = JSON.parse(readRepoFile("package.json"));
     const lock = JSON.parse(readRepoFile("package-lock.json"));
-    expect(pkg.packageManager).toMatch(/^npm@\d/);
+    expect(pkg.packageManager).toBe("npm@10.9.8");
     expect(lock.packages[""].dependencies["@x402/core"]).toBe("2.19.0");
   });
 
   it("fails direct transitive-only runtime imports", () => {
     const dir = mkdtempSync(join(tmpdir(), "import-gate-"));
+    writeToolchainFixture(dir);
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify(
         {
           private: true,
-          packageManager: "npm@11.13.0",
-          engines: { node: "22.20.1" },
+          packageManager: "npm@10.9.8",
+          engines: { node: "22.23.1", npm: "10.9.8" },
           dependencies: { hono: "4.12.31" },
         },
         null,
@@ -333,6 +344,24 @@ describe("CI and release archive hardening", () => {
   it("runs GitHub action pin check during archive verification", () => {
     const script = readRepoFile("scripts/verify-release-archive.ts");
     expect(script).toContain("npm run check:actions");
+    expect(script).toContain("npm run check:runtime");
+  });
+
+  it("runs runtime toolchain check in CI", () => {
+    const ci = readRepoFile(".github/workflows/ci.yml");
+    expect(ci).toContain("node-version-file: .nvmrc");
+    expect(ci).toContain("npm run check:runtime");
+    expect(ci).not.toContain("check-latest: true");
+  });
+
+  it("runs runtime toolchain check in release check", () => {
+    const script = readRepoFile("scripts/release-check.mjs");
+    expect(script).toContain("scripts/check-runtime-toolchain.mjs");
+  });
+
+  it("runs runtime toolchain check in the manual release workflow", () => {
+    const workflow = readRepoFile(".github/workflows/release-archive.yml");
+    expect(workflow).toContain("npm run check:runtime");
   });
 
   it("contains no deploy or payment commands in CI", () => {
@@ -508,6 +537,172 @@ describe("GitHub action pin consistency", () => {
     const dir = scaffoldPinCheckDir(workflow);
     const result = runActionPinCheck(dir);
     expect(result.status).toBe(0);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+const TOOLCHAIN_MANIFEST = JSON.parse(readRepoFile(".github/toolchain.json")) as {
+  node: string;
+  npm: string;
+};
+
+const TOOLCHAIN_TRACKED_PATHS = [
+  ".nvmrc",
+  "package.json",
+  ".github/toolchain.json",
+  ".github/workflows/ci.yml",
+  ".github/workflows/release-archive.yml",
+  "README.md",
+  "scripts/check-dependency-pins.mjs",
+  "scripts/check-runtime-toolchain.mjs",
+  "scripts/release-check.mjs",
+];
+
+function writeToolchainFixture(dir: string): void {
+  mkdirSync(join(dir, ".github", "workflows"), { recursive: true });
+  writeFileSync(join(dir, ".nvmrc"), `${TOOLCHAIN_MANIFEST.node}\n`);
+  writeFileSync(join(dir, ".github", "toolchain.json"), readRepoFile(".github/toolchain.json"));
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify(
+      {
+        private: true,
+        packageManager: `npm@${TOOLCHAIN_MANIFEST.npm}`,
+        engines: { node: TOOLCHAIN_MANIFEST.node, npm: TOOLCHAIN_MANIFEST.npm },
+        dependencies: {},
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(dir, "package-lock.json"),
+    JSON.stringify(
+      {
+        lockfileVersion: 3,
+        packages: {
+          "": {
+            engines: { node: TOOLCHAIN_MANIFEST.node, npm: TOOLCHAIN_MANIFEST.npm },
+          },
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(dir, ".github", "workflows", "ci.yml"),
+    "jobs:\n  verify:\n    steps:\n      - uses: actions/setup-node\n        with:\n          node-version-file: .nvmrc\n",
+  );
+}
+
+describe("official Node toolchain pinning", () => {
+  it("pins .nvmrc to 22.23.1", () => {
+    expect(readRepoFile(".nvmrc").trim()).toBe("22.23.1");
+  });
+
+  it("pins engines.node to 22.23.1", () => {
+    const pkg = JSON.parse(readRepoFile("package.json"));
+    expect(pkg.engines.node).toBe("22.23.1");
+  });
+
+  it("pins packageManager to npm@10.9.8", () => {
+    const pkg = JSON.parse(readRepoFile("package.json"));
+    expect(pkg.packageManager).toBe("npm@10.9.8");
+  });
+
+  it("keeps the toolchain manifest aligned with package metadata", () => {
+    const pkg = JSON.parse(readRepoFile("package.json"));
+    expect(TOOLCHAIN_MANIFEST.node).toBe("22.23.1");
+    expect(TOOLCHAIN_MANIFEST.npm).toBe("10.9.8");
+    expect(pkg.engines.node).toBe(TOOLCHAIN_MANIFEST.node);
+    expect(pkg.engines.npm).toBe(TOOLCHAIN_MANIFEST.npm);
+    expect(pkg.packageManager).toBe(`npm@${TOOLCHAIN_MANIFEST.npm}`);
+  });
+
+  it("does not reference Node 22.20.1 in tracked toolchain configuration", () => {
+    const pkg = JSON.parse(readRepoFile("package.json"));
+    expect(readRepoFile(".nvmrc").trim()).not.toBe("22.20.1");
+    expect(pkg.engines?.node).not.toBe("22.20.1");
+    expect(pkg.packageManager).not.toContain("22.20.1");
+    for (const relativePath of TOOLCHAIN_TRACKED_PATHS.filter((path) => path !== "package.json")) {
+      expect(readRepoFile(relativePath), relativePath).not.toContain("22.20.1");
+    }
+  });
+
+  it("does not require npm 11.13.0 in tracked toolchain configuration", () => {
+    for (const relativePath of TOOLCHAIN_TRACKED_PATHS) {
+      expect(readRepoFile(relativePath), relativePath).not.toContain("11.13.0");
+    }
+  });
+
+  it("passes the runtime toolchain check under the selected Node release", () => {
+    const result = spawnSync("node", ["scripts/check-runtime-toolchain.mjs"], {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("Runtime toolchain check: PASS");
+  });
+
+  it("fails runtime check when the required Node patch does not match the process", () => {
+    const dir = mkdtempSync(join(tmpdir(), "runtime-node-"));
+    const script = readRepoFile("scripts/check-runtime-toolchain.mjs").replace(
+      'const REQUIRED_NODE = "v22.23.1"',
+      'const REQUIRED_NODE = "v22.20.0"',
+    );
+    writeFileSync(join(dir, "check-runtime-toolchain.mjs"), script);
+    const result = spawnSync("node", [join(dir, "check-runtime-toolchain.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Runtime Node version must be v22.20.0");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails runtime check when the required npm patch does not match the process", () => {
+    const dir = mkdtempSync(join(tmpdir(), "runtime-npm-"));
+    const script = readRepoFile("scripts/check-runtime-toolchain.mjs").replace(
+      'const REQUIRED_NPM = "10.9.8"',
+      'const REQUIRED_NPM = "11.13.0"',
+    );
+    writeFileSync(join(dir, "check-runtime-toolchain.mjs"), script);
+    const result = spawnSync("node", [join(dir, "check-runtime-toolchain.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("Runtime npm version must be 11.13.0");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails mutable Node aliases in workflow configuration", () => {
+    const dir = mkdtempSync(join(tmpdir(), "toolchain-alias-"));
+    writeToolchainFixture(dir);
+    writeFileSync(
+      join(dir, ".github", "workflows", "ci.yml"),
+      "jobs:\n  verify:\n    steps:\n      - uses: actions/setup-node\n        with:\n          node-version-file: .nvmrc\n          check-latest: true\n",
+    );
+    const result = spawnSync("node", [join(ROOT, "scripts/check-dependency-pins.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("mutable Node toolchain alias");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("fails when the toolchain manifest and .nvmrc disagree", () => {
+    const dir = mkdtempSync(join(tmpdir(), "toolchain-mismatch-"));
+    writeToolchainFixture(dir);
+    writeFileSync(join(dir, ".nvmrc"), "22.20.0\n");
+    const result = spawnSync("node", [join(ROOT, "scripts/check-dependency-pins.mjs")], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("must match toolchain manifest node");
     rmSync(dir, { recursive: true, force: true });
   });
 });

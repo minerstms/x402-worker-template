@@ -11,11 +11,11 @@
   "bugs": {
     "url": "https://github.com/minerstms/x402-worker-template/issues"
   },
-  "packageManager": "npm@11.13.0",
+  "packageManager": "npm@10.9.8",
   "description": "Payment-verified Cloudflare Worker template using Hono and x402 v2 on Base Sepolia.",
   "engines": {
-    "node": "22.20.1",
-    "npm": ">=10.9.0"
+    "node": "22.23.1",
+    "npm": "10.9.8"
   },
   "scripts": {
     "dev": "wrangler dev",
@@ -42,6 +42,7 @@
     "check:docs": "node scripts/check-public-docs.mjs",
     "check:license": "node scripts/check-license.mjs",
     "check:actions": "node scripts/check-github-action-pins.mjs",
+    "check:runtime": "node scripts/check-runtime-toolchain.mjs",
     "release:check": "node scripts/release-check.mjs",
     "release:archive": "node scripts/create-safe-archive.mjs"
   },

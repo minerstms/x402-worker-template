@@ -113,9 +113,9 @@ describe("public-release hygiene", () => {
       engines?: { node?: string; npm?: string };
     };
 
-    expect(nvmrc).toBe("22.20.1");
-    expect(pkg.engines?.node).toBe("22.20.1");
-    expect(pkg.engines?.npm).toBeDefined();
+    expect(nvmrc).toBe("22.23.1");
+    expect(pkg.engines?.node).toBe("22.23.1");
+    expect(pkg.engines?.npm).toBe("10.9.8");
   });
 
   it("includes security policy and CI workflows", () => {
