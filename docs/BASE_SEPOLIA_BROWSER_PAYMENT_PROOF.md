@@ -1,5 +1,9 @@
 # Base Sepolia Browser Payment Proof
 
+> **PUBLIC-SAFE REDACTED TEST EVIDENCE**
+>
+> This record describes a supervised Base Sepolia browser payment performed outside the public repository. Exact deployment hostname, account identity, and on-chain references were intentionally omitted from the tracked source. Public readers cannot reproduce the historical payment against the omitted deployment.
+
 > **Source-template proof only.** This record applies to the dedicated demonstration Worker `x402-worker-template-testnet` built from this repository. A copied or renamed clone does **not** inherit this verification unless it completes its own supervised proof. Do not point clone documentation at this file as proof of clone payment.
 
 ## 1. Scope
@@ -18,8 +22,10 @@ It distinguishes:
 | Field | Value |
 | --- | --- |
 | Worker name | `x402-worker-template-testnet` |
-| Public URL | `<testnet-worker-url>` |
+| Public URL | intentionally omitted — documented placeholder: `<testnet-worker-url>` |
 | Proof date | 2026-07-23 |
+
+The exact Workers hostname and Cloudflare account identity were intentionally omitted from the public repository.
 
 The river reference Worker (`x402-usgs-river-snapshot`) was not modified.
 
@@ -133,14 +139,15 @@ This proof intentionally excludes:
 - Payment header
 - Raw settlement header
 - Transaction hash (none recorded)
+- Real Workers hostname or Cloudflare account identity
 - Browser Network-panel captures
 
 ## 10. Remaining limitations
 
-- **Browser payment verified on Base Sepolia** — yes, for this dedicated demonstration Worker on 2026-07-23.
+- **Browser payment verified on Base Sepolia** — yes, for the dedicated demonstration Worker on 2026-07-23.
 - **Mainnet not tested**
 - **Real USDC not tested**
-- **Template not yet clone-ready** — a fresh tracked-source clone/rename drill succeeded in evidence repository `x402-clone-drill@65c8c21`, but final template clone-surface cleanup and tagging remain.
+- **Template not yet public-release ready** — clone-surface cleanup, dependency pinning, CI, and documentation consistency are in progress; a fresh tracked-source clone/rename drill succeeded in a separate evidence repository, but final tagging remains.
 - **No customer private key required** for browser customers.
 - A hard refresh was once required after redeploy because browsers could retain a stale `/pay.js` until cache headers were hardened.
 - Post-success UI initially showed `Payment terms: awaiting confirmation` while wallet state was `success`; this was corrected in a follow-up patch.
@@ -153,5 +160,5 @@ This proof intentionally excludes:
 | Browser MetaMask Base Sepolia payment | Verified 2026-07-23 |
 | Mainnet | Unsupported |
 | Real USDC | Not tested |
-| Clone-ready | Not yet (clone drill succeeded; final template cleanup in progress) |
+| Public-release ready | Not yet |
 | Another live payment | Not required for this milestone |

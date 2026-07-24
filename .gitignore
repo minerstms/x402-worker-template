@@ -1,23 +1,49 @@
-node_modules/
-dist/
-dist-mainnet/
-dist-mainnet-mock-harness/
-src/generated/
-.wrangler/
-.dev.vars
+# Environment and local secrets
 .env
 .env.*
 !.env.example
 !.env.buyer.example
+.dev.vars
+.dev.vars.*
 !.dev.vars.example
+
+# Local Cloudflare state
+.wrangler/
+.devtools/
+
+# Keys, certificates, and wallets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.wallet
+*.seed
 wallet.json
 wallet.key
 wallet.pem
 wallet.*.json
 /wallets/
-*.key
-*.pem
-coverage/
+
+# Package-manager credentials
+.npmrc
+.yarnrc
+.yarnrc.yml
+
+# Audit and browser captures
+*.har
 *.log
+payai-supported.json
+audit-captures/
 body402.txt
 headers402.txt
+
+# Build and test output
+node_modules/
+coverage/
+dist/
+dist-*/
+.tmp/
+temp/
+src/generated/

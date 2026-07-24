@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Typecheck mainnet
+        run: npm run typecheck:mainnet
+
+      - name: Build testnet bundle
+        run: npm run build
+
+      - name: Build mainnet bundle
+        run: npm run build:mainnet
+
+      - name: Build mainnet mock browser bundle
+        run: npm run build:mainnet:mock-browser
+
+      - name: Build mainnet mock harness bundle
+        run: npm run build:mainnet:mock-harness:test
+
+      - name: Wrangler dry-run (testnet)
+        run: npx wrangler deploy --dry-run
+
+      - name: Wrangler dry-run (mainnet)
+        run: npx wrangler deploy --dry-run -c wrangler.mainnet.toml
+
+      - name: Wrangler dry-run (mainnet mock harness)
+        run: npx wrangler deploy --dry-run -c wrangler.mainnet-mock-harness.toml
+
+      - name: Git diff whitespace check
+        run: git diff --check

@@ -54,14 +54,21 @@ export function redactValue(value: unknown, key?: string): unknown {
 }
 
 function pickAllowedLogFields(fields: SafeLogFields): SafeLogFields {
-  const out: SafeLogFields = {};
-  for (const key of ALLOWED_LOG_FIELD_KEYS) {
-    const value = fields[key];
-    if (value !== undefined) {
-      out[key] = value;
-    }
-  }
-  return out;
+  return {
+    ...(fields.requestId !== undefined ? { requestId: fields.requestId } : {}),
+    ...(fields.route !== undefined ? { route: fields.route } : {}),
+    ...(fields.method !== undefined ? { method: fields.method } : {}),
+    ...(fields.status !== undefined ? { status: fields.status } : {}),
+    ...(fields.durationMs !== undefined ? { durationMs: fields.durationMs } : {}),
+    ...(fields.upstreamStatus !== undefined
+      ? { upstreamStatus: fields.upstreamStatus }
+      : {}),
+    ...(fields.paymentOutcome !== undefined
+      ? { paymentOutcome: fields.paymentOutcome }
+      : {}),
+    ...(fields.code !== undefined ? { code: fields.code } : {}),
+    ...(fields.message !== undefined ? { message: fields.message } : {}),
+  };
 }
 
 export function createRequestId(): string {

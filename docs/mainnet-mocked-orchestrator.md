@@ -124,6 +124,10 @@ The orchestrator is reachable **only** through tests and the non-production harn
 - No real seller address is configured in Wrangler.
 - No wallet, signature, Base RPC call, deployment, or Cloudflare resource was created for this patch.
 
+## Public-release hygiene
+
+Tracked source now includes hardened `.gitignore` rules, redacted Base Sepolia proof documentation, pinned dependency specifications, `.nvmrc` / `engines`, CI workflows, `SECURITY.md`, and a `verify:archive` reproducibility script. Production mainnet paid routes remain disabled.
+
 ## Next step
 
-Public-release hygiene pass covering Git ignore rules, proof-document privacy, dependency pinning, CI, and final documentation consistency.
+Optional Git history rewrite before public GitHub publication to remove personal commit metadata and historical deployment-hostname commits. No history rewrite is performed in the hygiene pass itself.

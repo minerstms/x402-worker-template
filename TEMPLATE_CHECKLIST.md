@@ -44,7 +44,7 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 
 ## Verified Base Sepolia milestones (reference template)
 
-- [x] Fresh tracked-source clone/rename drill succeeded (`x402-clone-drill@65c8c21`, evidence only)
+- [x] Fresh tracked-source clone/rename drill succeeded in a separate evidence repository
 - [x] MetaMask wallet connection
 - [x] Base Sepolia network switching
 - [x] Strict unpaid HTTP 402 validation
@@ -83,7 +83,7 @@ Use this list when copying `x402-worker-template` into a new paid Worker project
 - [ ] Real USDC
 - [ ] Final tracked-source clone/rename drill
 - [ ] Final version tag
-- [ ] Clone-ready status
+- [ ] Public-release ready status
 
 `docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md` records the source template's live browser payment only. Clones must not treat it as proof of their own payment.
 

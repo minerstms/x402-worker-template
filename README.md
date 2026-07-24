@@ -13,11 +13,11 @@ A reusable starting point for paid HTTP APIs on Cloudflare Workers. It preserves
 - Node CLI Base Sepolia test-USDC payment verified against the river reference Worker
 - Browser MetaMask Base Sepolia test-USDC payment verified on 2026-07-23 against the dedicated demonstration Worker `x402-worker-template-testnet`
 
-See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md) for the live browser proof record on the **source template's** dedicated demonstration Worker only.
+See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md) for the **PUBLIC-SAFE REDACTED TEST EVIDENCE** record. The exact deployment hostname was intentionally omitted from the public repository; readers cannot replay the historical payment against that omitted deployment.
 
-A successful fresh clone/rename drill was completed in the separate evidence repository `x402-clone-drill@65c8c21`. That clone has **not** performed a live payment and must not inherit the source proof.
+A successful fresh clone/rename drill was completed in a separate evidence repository. That clone has **not** performed a live payment and must not inherit the source proof.
 
-Mainnet and real USDC are not supported. The template is **not yet clone-ready**.
+Mainnet and real USDC are not supported. Production mainnet paid routes remain disabled. The template is **not yet public-release ready**.
 
 ## Routes
 
@@ -82,7 +82,13 @@ The dedicated demonstration Worker `x402-worker-template-testnet` has a verified
 
 Another live payment is not required for the current milestone.
 
-Mainnet remains unsupported. One explicit click authorizes at most one testnet payment attempt when payment is enabled. Uncertain submission must never be retried automatically.
+Mainnet remains unsupported and the production mainnet paid route remains disabled. One explicit click authorizes at most one testnet payment attempt when payment is enabled. Uncertain submission must never be retried automatically.
+
+## Toolchain
+
+- Node **22.20.1** (see `.nvmrc` and `package.json` `engines`)
+- npm **10.9.2** or newer compatible with the lockfile
+- Reproducible verification: `npm ci`, then the scripts in [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
 
 ## Commands
 
@@ -102,12 +108,16 @@ Shared paid-route constants live in `src/pay-public-config.ts` (`PAID_ROUTE`, `A
 
 `test/clone-surfaces.test.ts` documents the small set of files a future clone should edit.
 
+## Security
+
+See [SECURITY.md](./SECURITY.md) for vulnerability reporting and sensitive-material guidance.
+
 ## Red-lane warnings
 
 - Do not deploy, configure Cloudflare secrets, or run paid buyer commands without explicit authorization.
 - Do not commit private keys, seller addresses, or `.dev.vars` / `.env.buyer`.
 - Do not enable Base mainnet or change the locked Base Sepolia payment terms without a deliberate security review.
-- A fresh tracked-source clone/rename drill is still required before calling the template clone-ready.
+- A fresh tracked-source clone/rename drill is still required before calling the template public-release ready.
 
 ## Provenance
 

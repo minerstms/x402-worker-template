@@ -9,7 +9,7 @@ import {
   setCoordinatorFailureInjectionForTests,
 } from "../src/mainnet/durable/payment-coordinator-client.js";
 import { formatSafeCliErrorJson } from "../src/cli/safe-cli-error.js";
-import { getAllowedLogFieldKeys, logStructured } from "../src/logging.js";
+import { getAllowedLogFieldKeys, logStructured, type SafeLogFields } from "../src/logging.js";
 import {
   BASE_USDBC_ASSET,
   LEGACY_INCORRECT_USDBC_PLACEHOLDER,
@@ -377,11 +377,9 @@ describe("mainnet payment hardening", () => {
           requestId: "r1",
           route: "/v1/example",
           paymentOutcome: "required",
-          // @ts-expect-error intentional negative test
           paymentIdentifier: MAINNET_TEST_PAYMENT_ID,
-          // @ts-expect-error intentional negative test
           privateKey: "0xabc",
-        },
+        } as SafeLogFields,
         (line) => lines.push(line),
       );
       expect(lines).toHaveLength(1);
