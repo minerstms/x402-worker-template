@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   MAX_BLOB_BYTES,
@@ -32,6 +32,34 @@ function git(args, input) {
 }
 
 function listTrackedFiles() {
+  if (!existsSync(join(repoRoot, ".git"))) {
+    const excluded = new Set([
+      "node_modules",
+      "dist",
+      "dist-mainnet",
+      "dist-mainnet-mock-harness",
+      "coverage",
+      ".wrangler",
+    ]);
+    const files = [];
+    function walk(relativeDir = "") {
+      const absoluteDir = relativeDir ? join(repoRoot, relativeDir) : repoRoot;
+      for (const entry of readdirSync(absoluteDir)) {
+        if (excluded.has(entry)) continue;
+        const relativePath = relativeDir ? `${relativeDir}/${entry}` : entry;
+        const absolutePath = join(repoRoot, relativePath);
+        const stat = statSync(absolutePath);
+        if (stat.isDirectory()) {
+          walk(relativePath);
+          continue;
+        }
+        files.push(relativePath.replace(/\\/g, "/"));
+      }
+    }
+    walk();
+    return files;
+  }
+
   const output = git(["ls-files", "-z"]);
   return output.split("\0").filter(Boolean);
 }
