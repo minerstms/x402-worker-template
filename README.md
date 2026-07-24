@@ -17,7 +17,7 @@ See [docs/BASE_SEPOLIA_BROWSER_PAYMENT_PROOF.md](./docs/BASE_SEPOLIA_BROWSER_PAY
 
 A successful fresh clone/rename drill was completed in a separate evidence repository. That clone has **not** performed a live payment and must not inherit the source proof.
 
-Mainnet and real USDC are not supported. Production mainnet paid routes remain disabled. The template is **not yet public-release ready**.
+Mainnet and real USDC are not supported. Production mainnet paid routes remain disabled. The sanitized source tree is **ready for authorized public publication**; no Git remote is configured and this repository has not been published.
 
 ## Routes
 
@@ -100,7 +100,7 @@ npm run security:scan:history   # Scan deduplicated Git blobs; prints formal his
 npm run security:scan:all         # Run both scans
 npm run check:dependencies      # Exact pins, lockfile metadata, direct runtime imports
 npm run check:docs              # Public documentation consistency
-npm run check:license           # Warns that LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE
+npm run check:license           # Verifies canonical Apache-2.0 LICENSE and package metadata
 npm run release:check           # Full local release gate bundle
 npm run release:archive         # Create a safe git-archive ZIP plus SHA-256 checksum
 npm run verify:archive          # Verify a git-archive checkout with npm ci + tests + typechecks
@@ -112,7 +112,13 @@ Current formal history classification:
 
 Git history has been sanitized for public release. CI and release automation run the tracked scan, history scan, and release gates. The manual release workflow fails if history is not clean.
 
-Production mainnet paid routes remain disabled. No production facilitator is selected. Public visibility without an owner-selected license does not grant reuse rights; owner review options include MIT, Apache-2.0, or proprietary/all rights reserved.
+## License
+
+First-party project code is licensed under the **Apache License 2.0** (`Apache-2.0`). See [LICENSE](./LICENSE).
+
+Third-party npm dependencies retain their own licenses; see `package-lock.json`. No separate project-level `NOTICE` file is currently required because no vendored third-party source is copied into this repository.
+
+Production mainnet paid routes remain disabled. No production facilitator is selected. No production seller is configured in tracked source.
 
 ## Commands
 
@@ -141,7 +147,7 @@ See [SECURITY.md](./SECURITY.md) for vulnerability reporting and sensitive-mater
 - Do not deploy, configure Cloudflare secrets, or run paid buyer commands without explicit authorization.
 - Do not commit private keys, seller addresses, or `.dev.vars` / `.env.buyer`.
 - Do not enable Base mainnet or change the locked Base Sepolia payment terms without a deliberate security review.
-- A fresh tracked-source clone/rename drill is still required before calling the template public-release ready.
+- Publication requires separate owner authorization; this repository has no configured Git remote.
 
 ## Provenance
 

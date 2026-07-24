@@ -6,7 +6,7 @@ const steps = [
   { label: "History security scan", command: ["node", "scripts/security-scan.mjs", "--history"] },
   { label: "Dependency pin check", command: ["node", "scripts/check-dependency-pins.mjs"] },
   { label: "Documentation consistency check", command: ["node", "scripts/check-public-docs.mjs"] },
-  { label: "License decision warning", command: ["node", "scripts/check-license.mjs"] },
+  { label: "License check", command: ["node", "scripts/check-license.mjs"] },
   { label: "Unit and integration tests", command: ["npm", "test"] },
   { label: "Typecheck", command: ["npm", "run", "typecheck"] },
   { label: "Mainnet typecheck", command: ["npm", "run", "typecheck:mainnet"] },
@@ -48,5 +48,8 @@ for (const step of steps) {
 }
 
 console.log("\nRelease check: PASS (automation gates)");
-console.log("PUBLIC RELEASE STATUS: INCOMPLETE");
-console.log("- LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+console.log("PUBLIC RELEASE STATUS: READY FOR AUTHORIZED PUBLICATION");
+console.log("- LICENSE: Apache-2.0");
+console.log("- HISTORY CLASSIFICATION: HISTORY CLEAN");
+console.log("- No Git remote configured in this repository");
+console.log("- Publication, remote creation, and push require separate owner authorization");

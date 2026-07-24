@@ -44,6 +44,12 @@ Before enabling payment on any deployed Worker:
 
 Direct dependencies are pinned in `package.json`. CI verifies `npm ci`, tests, typechecks, builds, and a clean `git archive` checkout. Upgrade `@x402/*` packages only after reviewing workerd-safe validator parity tests and payment-state invariants.
 
+## Licensing
+
+First-party source in this repository is licensed under **Apache License 2.0** (`Apache-2.0`). See the root `LICENSE` file.
+
+Installed npm dependencies are not vendored into the repository; each package retains its own license terms recorded in `package-lock.json`.
+
 ## Out of scope for this template
 
 - Operating a production payment service

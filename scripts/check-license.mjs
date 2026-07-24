@@ -5,23 +5,43 @@ import { join } from "node:path";
 const repoRoot = process.cwd();
 const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
 const licensePath = join(repoRoot, "LICENSE");
+const NOTICE_PATH = join(repoRoot, "NOTICE");
+
+const REQUIRED_LICENSE_MARKERS = [
+  "Apache License",
+  "Version 2.0, January 2004",
+  "TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION",
+  "END OF TERMS AND CONDITIONS",
+];
 
 function main() {
-  if (existsSync(licensePath)) {
-    console.error("LICENSE file is present but no license has been owner-approved.");
+  if (!existsSync(licensePath)) {
+    console.error("LICENSE file is missing.");
     process.exit(1);
   }
 
-  if (pkg.license) {
-    console.error(`package.json must not claim license ${pkg.license} without owner approval.`);
+  if (pkg.license !== "Apache-2.0") {
+    console.error('package.json must declare "license": "Apache-2.0".');
     process.exit(1);
   }
 
-  console.warn("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
-  console.warn(
-    "Public visibility without a license does not grant reuse rights. Owner review options include MIT, Apache-2.0, or proprietary/all rights reserved.",
-  );
-  console.log("License decision check: WARNING (release remains incomplete)");
+  const licenseText = readFileSync(licensePath, "utf8");
+  for (const marker of REQUIRED_LICENSE_MARKERS) {
+    if (!licenseText.includes(marker)) {
+      console.error(`LICENSE file is missing required Apache-2.0 marker: ${marker}`);
+      process.exit(1);
+    }
+  }
+
+  if (existsSync(NOTICE_PATH)) {
+    console.error("Unexpected NOTICE file; review third-party attribution obligations before release.");
+    process.exit(1);
+  }
+
+  console.log("License check: PASS (Apache-2.0)");
+  console.log("First-party project code is licensed under Apache-2.0.");
+  console.log("Third-party npm dependencies retain their own licenses in package-lock.json.");
+  console.log("No project-level NOTICE file is currently required.");
 }
 
 main();

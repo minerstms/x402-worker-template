@@ -114,8 +114,9 @@ describe("public-release hygiene", () => {
 
   it("keeps README status claims aligned with disabled mainnet", () => {
     const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-    expect(readme).toMatch(/not yet public-release ready/i);
+    expect(readme).toMatch(/ready for authorized public publication/i);
     expect(readme).toMatch(/production mainnet paid route remains disabled/i);
+    expect(readme).toMatch(/Apache-2.0/i);
     expect(readme).not.toMatch(/production facilitator was selected/i);
     expect(readme).not.toMatch(new RegExp("mrr" + "adle", "i"));
   });

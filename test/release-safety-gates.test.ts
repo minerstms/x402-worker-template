@@ -353,15 +353,26 @@ describe("CI and release archive hardening", () => {
 });
 
 describe("license and production release gates", () => {
-  it("keeps the license intentionally unselected", () => {
+  it("declares Apache-2.0 in package metadata", () => {
     const pkg = JSON.parse(readRepoFile("package.json"));
-    expect(pkg.license).toBeUndefined();
+    expect(pkg.license).toBe("Apache-2.0");
+  });
+
+  it("includes the canonical Apache-2.0 LICENSE file", () => {
+    const license = readRepoFile("LICENSE");
+    expect(license).toContain("Apache License");
+    expect(license).toContain("Version 2.0, January 2004");
+    expect(license).toContain("END OF TERMS AND CONDITIONS");
+  });
+
+  it("passes the license gate", () => {
     const result = spawnSync("node", ["scripts/check-license.mjs"], {
       cwd: ROOT,
       encoding: "utf8",
     });
     expect(result.status).toBe(0);
-    expect(result.stderr).toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+    expect(result.stdout).toContain("License check: PASS (Apache-2.0)");
+    expect(result.stdout).toContain("No project-level NOTICE file is currently required.");
   });
 
   it("documents sanitized history in README", () => {
@@ -371,9 +382,18 @@ describe("license and production release gates", () => {
     expect(readme).not.toContain("History rewrite is required");
   });
 
-  it("keeps public-release status incomplete only for license", () => {
+  it("documents Apache-2.0 licensing in README", () => {
+    const readme = readRepoFile("README.md");
+    expect(readme).toContain("Apache License 2.0");
+    expect(readme).toContain("Apache-2.0");
+    expect(readme).not.toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+  });
+
+  it("marks public release ready for authorized publication only", () => {
     const releaseCheck = readRepoFile("scripts/release-check.mjs");
-    expect(releaseCheck).toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+    expect(releaseCheck).toContain("READY FOR AUTHORIZED PUBLICATION");
+    expect(releaseCheck).toContain("LICENSE: Apache-2.0");
+    expect(releaseCheck).not.toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
     expect(releaseCheck).not.toContain("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
   });
 
@@ -392,17 +412,19 @@ describe("license and production release gates", () => {
     }
   });
 
-  it("preserves the pre-documentation HEAD tree hash", () => {
+  it("preserves the sanitized rewrite content tree hash", () => {
     if (!existsSync(join(ROOT, ".git"))) {
       return;
     }
-    const headMessage = execSync("git log -1 --format=%s", {
-      cwd: ROOT,
-      encoding: "utf8",
-    }).trim();
-    const treeRef =
-      headMessage === "Finalize sanitized public history" ? "HEAD~1^{tree}" : "HEAD^{tree}";
-    const tree = execSync(`git rev-parse "${treeRef}"`, {
+    const sanitizedCommit = execSync(
+      'git log --format=%H -1 --grep="^Finalize sanitized public history$"',
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+      },
+    ).trim();
+    expect(sanitizedCommit.length).toBeGreaterThan(0);
+    const tree = execSync(`git rev-parse "${sanitizedCommit}^^{tree}"`, {
       cwd: ROOT,
       encoding: "utf8",
     }).trim();

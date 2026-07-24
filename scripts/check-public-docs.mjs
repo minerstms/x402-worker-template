@@ -12,8 +12,8 @@ const APPROVED_PATTERNS = [
   /production mainnet route disabled/i,
   /production mainnet paid route remains disabled/i,
   /production facilitator not selected/i,
-  /not production-ready/i,
-  /not yet public-release ready/i,
+  /ready for authorized public publication/i,
+  /apache-2.0/i,
 ];
 
 const FAIL_PATTERNS = [

@@ -2,6 +2,7 @@
   "name": "x402-worker-template",
   "type": "module",
   "private": true,
+  "license": "Apache-2.0",
   "packageManager": "npm@11.13.0",
   "description": "Payment-verified Cloudflare Worker template using Hono and x402 v2 on Base Sepolia.",
   "engines": {

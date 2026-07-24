@@ -147,7 +147,7 @@ This proof intentionally excludes:
 - **Browser payment verified on Base Sepolia** — yes, for the dedicated demonstration Worker on 2026-07-23.
 - **Mainnet not tested**
 - **Real USDC not tested**
-- **Template not yet public-release ready** — clone-surface cleanup, dependency pinning, CI, and documentation consistency are in progress; a fresh tracked-source clone/rename drill succeeded in a separate evidence repository, but final tagging remains.
+- **Template publication pending owner authorization** — sanitized history, Apache-2.0 license, dependency pinning, CI, and documentation consistency are complete in the clean candidate repository; no Git remote is configured and no public push has occurred.
 - **No customer private key required** for browser customers.
 - A hard refresh was once required after redeploy because browsers could retain a stale `/pay.js` until cache headers were hardened.
 - Post-success UI initially showed `Payment terms: awaiting confirmation` while wallet state was `success`; this was corrected in a follow-up patch.
