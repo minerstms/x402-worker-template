@@ -29,9 +29,9 @@ The secret name is documented in Wrangler comments and `MAINNET_PROOF_SELLER_SEC
 | Term | Value |
 | --- | --- |
 | PayAI proof facilitator candidate | PayAI (`candidate-not-live-verified`) |
-| Production facilitator selected | `false` |
-| Production mainnet route enabled | `false` |
-| Payment ready | `false` |
+| Production facilitator not selected | yes (`false` in source) |
+| Production mainnet route disabled | yes (`false` in source) |
+| Payment ready | **false** |
 | Real Base-mainnet payment | **not completed** |
 
 Do **not** interpret deployment of this disabled Worker as:
