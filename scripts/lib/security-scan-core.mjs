@@ -223,7 +223,7 @@ export function scanTextContent(content, context = {}) {
   }
 
   for (const rule of RULES) {
-    if (scannerDefinitionFile && rule.category === "absolute-user-path") {
+    if (scannerDefinitionFile) {
       continue;
     }
     rule.regex.lastIndex = 0;
