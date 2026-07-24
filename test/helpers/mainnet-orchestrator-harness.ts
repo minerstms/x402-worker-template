@@ -14,7 +14,12 @@ import {
 import {
   buildMainnetExamplePaymentOption,
 } from "../../src/mainnet/payment.mainnet.js";
+import { createProofFacilitatorCandidateHttpClient } from "../../src/mainnet/proof-facilitator-client.mainnet.js";
 import type { MainnetPolicyConfig } from "../../src/mainnet/payment-policy.mainnet.js";
+import {
+  createProofFacilitatorMockFetch,
+  type ProofFacilitatorMockFetchOptions,
+} from "./proof-facilitator-mock-fetch.js";
 import {
   createMainnetTestContext,
   type MainnetTestBindings,
@@ -241,4 +246,55 @@ export async function dispatchMainnetUnpaidRequest(
   url = buildMainnetExampleRequestUrl(),
 ): Promise<Response> {
   return dispatchMainnetOrchestratorRequest(deps, { url, paymentSignatureHeader: null });
+}
+
+export async function createProofFacilitatorOrchestratorContext(
+  options: {
+    mockFetch?: ProofFacilitatorMockFetchOptions;
+    timeoutMs?: number;
+    sellerAddress?: string;
+    bindings?: MainnetTestBindings;
+    buildResponse?: MainnetOrchestratorDeps["buildResponse"];
+  } = {},
+): Promise<{
+  bindings: MainnetTestBindings;
+  deps: MainnetOrchestratorDeps;
+  ledger: ReturnType<typeof createProofFacilitatorMockFetch>["ledger"];
+  resetLedger: () => void;
+  dispose: () => Promise<void>;
+}> {
+  const mock = createProofFacilitatorMockFetch(options.mockFetch);
+  const facilitator = createProofFacilitatorCandidateHttpClient({
+    fetchImpl: mock.fetch,
+    timeoutMs: options.timeoutMs ?? 50,
+  });
+  const policy: MainnetPolicyConfig = {
+    sellerAddress: options.sellerAddress ?? MAINNET_TEST_SELLER,
+  };
+  let bindings = options.bindings;
+  let dispose: () => Promise<void> = async () => undefined;
+  if (!bindings) {
+    const context = await createMainnetTestContext();
+    bindings = context.bindings;
+    dispose = async () => {
+      await context.mf.dispose();
+    };
+  }
+  const resourceServer = createMainnetOrchestratorResourceServer(facilitator);
+  await resourceServer.initialize();
+  const deps: MainnetOrchestratorDeps = {
+    coordinator: bindings.PAYMENT_COORDINATOR,
+    facilitator,
+    policy,
+    resourceServer,
+    buildResponse: options.buildResponse,
+  };
+  mock.resetLedger();
+  return {
+    bindings,
+    deps,
+    ledger: mock.ledger,
+    resetLedger: mock.resetLedger,
+    dispose,
+  };
 }

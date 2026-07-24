@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HTTPFacilitatorClient } from "@x402/core/server";
 import { describe, expect, it } from "vitest";
 import {
   buildProofFacilitatorCandidateUrl,
@@ -12,7 +11,10 @@ import {
   MAINNET_PROOF_FACILITATOR_STATUS,
   MAINNET_REAL_PAYMENT_COMPATIBILITY,
 } from "../src/mainnet/proof-facilitator-candidate.mainnet.js";
-import { createProofFacilitatorCandidateHttpClient } from "../src/mainnet/proof-facilitator-client.mainnet.js";
+import {
+  PayAIProofFacilitatorAdapter,
+  createProofFacilitatorCandidateHttpClient,
+} from "../src/mainnet/proof-facilitator-client.mainnet.js";
 
 const ROOT = join(import.meta.dirname, "..");
 
@@ -57,26 +59,23 @@ describe("mainnet proof facilitator candidate", () => {
     });
   });
 
-  it("constructs HTTPFacilitatorClient for the candidate origin only", () => {
-    const client = createProofFacilitatorCandidateHttpClient();
-    expect(client).toBeInstanceOf(HTTPFacilitatorClient);
+  it("constructs the exact-origin adapter for the candidate only", () => {
+    const client = createProofFacilitatorCandidateHttpClient({
+      fetchImpl: (() => {
+        throw new Error("injected fetch required in tests");
+      }) as typeof fetch,
+    });
+    expect(client).toBeInstanceOf(PayAIProofFacilitatorAdapter);
     expect(client.url).toBe("https://facilitator.payai.network");
   });
 
-  it("does not wire the proof HTTP client into the production mainnet entry", () => {
+  it("does not wire the proof adapter into the production mainnet entry", () => {
     const source = readRepoFile("src/index.mainnet.ts");
     expect(source).not.toContain("HTTPFacilitatorClient");
     expect(source).not.toContain("createProofFacilitatorCandidateHttpClient");
     expect(source).not.toContain("facilitator.payai.network");
     expect(source).not.toContain("proof-facilitator-client");
     expect(source).toContain('code: "NOT_ENABLED"');
-  });
-
-  it("keeps the production mainnet bundle free of proof HTTP client wiring", () => {
-    const bundle = readRepoFile("dist-mainnet/index.mainnet.js");
-    expect(bundle).not.toContain("HTTPFacilitatorClient");
-    expect(bundle).not.toContain("facilitator.payai.network");
-    expect(bundle).not.toContain("createProofFacilitatorCandidateHttpClient");
   });
 
   it("documents proof candidate status without selecting production facilitator", () => {

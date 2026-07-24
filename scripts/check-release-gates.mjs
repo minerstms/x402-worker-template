@@ -18,8 +18,8 @@ function main() {
     join(repoRoot, "src", "mainnet", "proof-facilitator-candidate.mainnet.ts"),
     "utf8",
   );
-  const proofClient = readFileSync(
-    join(repoRoot, "src", "mainnet", "proof-facilitator-client.mainnet.ts"),
+  const proofHttp = readFileSync(
+    join(repoRoot, "src", "mainnet", "proof-facilitator-http.mainnet.ts"),
     "utf8",
   );
 
@@ -53,8 +53,13 @@ function main() {
     process.exit(1);
   }
 
-  if (proofClient.includes("fetch(") || proofClient.includes("POST")) {
-    console.error("Proof facilitator client factory must not perform live HTTP calls.");
+  if (proofHttp.match(/[^.]fetch\s*\(/)) {
+    console.error("Proof facilitator HTTP must use injected fetch only.");
+    process.exit(1);
+  }
+
+  if (proofHttp.includes("createAuthHeaders") || proofHttp.includes('"Authorization"')) {
+    console.error("Proof facilitator adapter must remain unauthenticated.");
     process.exit(1);
   }
 

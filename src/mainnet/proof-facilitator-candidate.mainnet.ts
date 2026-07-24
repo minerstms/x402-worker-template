@@ -18,6 +18,10 @@ export const MAINNET_PAYMENT_READY = false as const;
 export const MAINNET_REAL_PAYMENT_COMPATIBILITY =
   "not-yet-empirically-proven" as const;
 
+export const MAINNET_PROOF_FACILITATOR_TIMEOUT_MS = 10_000 as const;
+
+export const MAINNET_PROOF_FACILITATOR_MAX_RESPONSE_BYTES = 256 * 1024;
+
 export type MainnetProofFacilitatorPath =
   | typeof MAINNET_PROOF_FACILITATOR.supportedPath
   | typeof MAINNET_PROOF_FACILITATOR.verifyPath

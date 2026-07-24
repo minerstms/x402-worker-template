@@ -87,9 +87,14 @@ Terms fingerprint, auth commitment, and resource identity hash are derived from 
 
 ## Mock facilitator scope
 
-Test helper: `test/helpers/mock-facilitator.ts`
+Test helpers:
 
-Supported deterministic modes: verify/settle success, definitive failure, thrown timeout, delayed operations, malformed settlement receipt. Call counts are tracked; `fetch()` is blocked by a network guard in orchestrator tests.
+- `test/helpers/mock-facilitator.ts` — in-memory mock `FacilitatorClient`
+- `test/helpers/proof-facilitator-mock-fetch.ts` — injected fake fetch ledger for the PayAI exact-origin adapter
+
+Supported deterministic modes: verify/settle success, definitive failure, thrown timeout, delayed operations, malformed settlement receipt, HTTP error modes, redirect rejection, invalid JSON, and oversized bodies. Call counts are tracked; global `fetch()` is blocked by a network guard in orchestrator tests.
+
+PayAI adapter orchestrator integration (`test/mainnet-proof-facilitator-orchestrator-integration.test.ts`) drives the real mainnet orchestrator through the candidate adapter with injected fake fetch only. No live PayAI `/verify` or `/settle` request occurs.
 
 ## Failure and uncertainty handling
 
