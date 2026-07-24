@@ -11,14 +11,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 function run(command: string, cwd: string): void {
-  execSync(command, {
-    cwd,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      CI: "true",
-    },
-  });
+  try {
+    execSync(command, {
+      cwd,
+      stdio: "pipe",
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CI: "true",
+      },
+    });
+  } catch (error) {
+    const execError = error as { stdout?: string; stderr?: string; message?: string };
+    if (execError.stdout) process.stdout.write(execError.stdout);
+    if (execError.stderr) process.stderr.write(execError.stderr);
+    throw error;
+  }
 }
 
 function extractZip(zipPath: string, destination: string): void {

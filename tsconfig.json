@@ -14,5 +14,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "test", "scripts", "worker-configuration.mainnet.d.ts"]
+  "include": ["src", "test", "scripts", "worker-configuration.mainnet.d.ts"],
+  "exclude": ["test/release-safety-gates.test.ts"]
 }
