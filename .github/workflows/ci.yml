@@ -36,6 +36,9 @@ jobs:
       - name: Tracked security scan
         run: npm run security:scan:tracked
 
+      - name: History security scan
+        run: npm run security:scan:history
+
       - name: Dependency pin check
         run: npm run check:dependencies
 

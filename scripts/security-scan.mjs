@@ -250,7 +250,7 @@ function main() {
 
     if (classification !== "HISTORY CLEAN") {
       console.error("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
-      process.exit(0);
+      process.exit(1);
     }
     console.log("History security scan: PASS");
   }

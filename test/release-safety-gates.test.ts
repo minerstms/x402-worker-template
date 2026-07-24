@@ -160,7 +160,7 @@ describe("security scanner scripts", () => {
     expect(source).toContain("buffer.toString(\"utf8\")");
   });
 
-  it("reports privacy-only rewrite requirement from real history scan", () => {
+  it("reports HISTORY CLEAN from real history scan", () => {
     if (!existsSync(join(ROOT, ".git"))) {
       return;
     }
@@ -168,10 +168,9 @@ describe("security scanner scripts", () => {
       cwd: ROOT,
       encoding: "utf8",
     });
-    expect(result.stdout + result.stderr).toContain(
-      "HISTORY CONTAINS PRIVACY-ONLY FINDINGS — REWRITE REQUIRED",
-    );
-    expect(result.stdout + result.stderr).toContain(
+    expect(result.stdout + result.stderr).toContain("HISTORY CLASSIFICATION: HISTORY CLEAN");
+    expect(result.stdout + result.stderr).toContain("History security scan: PASS");
+    expect(result.stdout + result.stderr).not.toContain(
       "HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH",
     );
     expect(result.status).toBe(0);
@@ -304,6 +303,11 @@ describe("CI and release archive hardening", () => {
     expect(ci).not.toContain("contents: write");
   });
 
+  it("runs history scanning in CI", () => {
+    const ci = readRepoFile(".github/workflows/ci.yml");
+    expect(ci).toContain("npm run security:scan:history");
+  });
+
   it("pins GitHub Actions to full commit SHAs", () => {
     const ci = readRepoFile(".github/workflows/ci.yml");
     expect(ci).toMatch(/uses: actions\/checkout@[0-9a-f]{40}/);
@@ -322,6 +326,18 @@ describe("CI and release archive hardening", () => {
     const script = readRepoFile("scripts/create-safe-archive.mjs");
     expect(script).toContain('["archive", "--format=zip"');
     expect(script).toContain("createHash(\"sha256\")");
+  });
+
+  it("runs history scanning in release check", () => {
+    const script = readRepoFile("scripts/release-check.mjs");
+    expect(script).toContain('"--history"');
+    expect(script).not.toContain("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
+  });
+
+  it("runs history scanning in the manual release workflow", () => {
+    const workflow = readRepoFile(".github/workflows/release-archive.yml");
+    expect(workflow).toContain("npm run security:scan:history");
+    expect(workflow).not.toContain("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
   });
 
   it("refuses a dirty working tree for release archives", () => {
@@ -346,6 +362,51 @@ describe("license and production release gates", () => {
     });
     expect(result.status).toBe(0);
     expect(result.stderr).toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+  });
+
+  it("documents sanitized history in README", () => {
+    const readme = readRepoFile("README.md");
+    expect(readme).toContain("HISTORY CLEAN");
+    expect(readme).not.toContain("HISTORY CONTAINS PRIVACY-ONLY FINDINGS");
+    expect(readme).not.toContain("History rewrite is required");
+  });
+
+  it("keeps public-release status incomplete only for license", () => {
+    const releaseCheck = readRepoFile("scripts/release-check.mjs");
+    expect(releaseCheck).toContain("LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
+    expect(releaseCheck).not.toContain("HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");
+  });
+
+  it("uses the neutral identity for every commit author and committer", () => {
+    if (!existsSync(join(ROOT, ".git"))) {
+      return;
+    }
+    const output = execSync('git log --format="%an <%ae> | %cn <%ce>" --all', {
+      cwd: ROOT,
+      encoding: "utf8",
+    });
+    for (const line of output.trim().split("\n")) {
+      expect(line).toBe(
+        "x402 Template Maintainer <x402-template@users.noreply.github.com> | x402 Template Maintainer <x402-template@users.noreply.github.com>",
+      );
+    }
+  });
+
+  it("preserves the pre-documentation HEAD tree hash", () => {
+    if (!existsSync(join(ROOT, ".git"))) {
+      return;
+    }
+    const headMessage = execSync("git log -1 --format=%s", {
+      cwd: ROOT,
+      encoding: "utf8",
+    }).trim();
+    const treeRef =
+      headMessage === "Finalize sanitized public history" ? "HEAD~1^{tree}" : "HEAD^{tree}";
+    const tree = execSync(`git rev-parse "${treeRef}"`, {
+      cwd: ROOT,
+      encoding: "utf8",
+    }).trim();
+    expect(tree).toBe("f313b612239dbd00fb92fd49ec44dc57107c88ab");
   });
 
   it("keeps the production mainnet route disabled", () => {

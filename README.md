@@ -108,9 +108,9 @@ npm run verify:archive          # Verify a git-archive checkout with npm ci + te
 
 Current formal history classification:
 
-`HISTORY CONTAINS PRIVACY-ONLY FINDINGS — REWRITE REQUIRED`
+`HISTORY CLEAN`
 
-History rewrite is required before the first public push because personal commit metadata and a historical Workers hostname remain in Git history. CI runs the tracked scan and release gates; the manual release workflow runs the history scan and reports `HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH`.
+Git history has been sanitized for public release. CI and release automation run the tracked scan, history scan, and release gates. The manual release workflow fails if history is not clean.
 
 Production mainnet paid routes remain disabled. No production facilitator is selected. Public visibility without an owner-selected license does not grant reuse rights; owner review options include MIT, Apache-2.0, or proprietary/all rights reserved.
 

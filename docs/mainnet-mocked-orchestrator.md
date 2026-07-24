@@ -130,4 +130,4 @@ Tracked source now includes hardened `.gitignore` rules, redacted Base Sepolia p
 
 ## Next step
 
-Optional Git history rewrite before public GitHub publication to remove personal commit metadata and historical deployment-hostname commits. No history rewrite is performed in the hygiene pass itself.
+Git history has been sanitized for public release. The formal history classification is `HISTORY CLEAN`.

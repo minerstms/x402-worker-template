@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 
 const steps = [
   { label: "Tracked security scan", command: ["node", "scripts/security-scan.mjs", "--tracked"] },
+  { label: "History security scan", command: ["node", "scripts/security-scan.mjs", "--history"] },
   { label: "Dependency pin check", command: ["node", "scripts/check-dependency-pins.mjs"] },
   { label: "Documentation consistency check", command: ["node", "scripts/check-public-docs.mjs"] },
   { label: "License decision warning", command: ["node", "scripts/check-license.mjs"] },
@@ -49,4 +50,3 @@ for (const step of steps) {
 console.log("\nRelease check: PASS (automation gates)");
 console.log("PUBLIC RELEASE STATUS: INCOMPLETE");
 console.log("- LICENSE DECISION REQUIRED BEFORE PUBLIC REUSE");
-console.log("- HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH");

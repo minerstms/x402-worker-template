@@ -33,6 +33,3 @@ jobs:
 
       - name: Verify release archive reproducibility
         run: npm run verify:archive
-
-      - name: Report history rewrite requirement
-        run: echo "HISTORY REWRITE REQUIRED BEFORE PUBLIC PUSH"
