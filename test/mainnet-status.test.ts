@@ -21,8 +21,15 @@ describe("mainnet payment status helpers", () => {
       state: "fulfilled",
       updatedAt: new Date().toISOString(),
       transactionHash: tx,
+      fulfilledResult: {
+        contentType: "application/json",
+        body: { success: true },
+      },
     });
-    expect(body.transactionRef).toBe(`${tx.slice(0, 8)}…${tx.slice(-6)}`);
-    expect(body.transactionRef).not.toBe(tx);
+    expect(body.transactionReference).toBe(`${tx.slice(0, 8)}…${tx.slice(-6)}`);
+    expect(body.transactionReference).not.toBe(tx);
+    expect(body.result?.contentType).toBe("application/json");
+    expect(body.canRetry).toBe(false);
+    expect(body.needsFreshTerms).toBe(false);
   });
 });

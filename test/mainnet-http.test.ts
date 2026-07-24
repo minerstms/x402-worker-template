@@ -45,7 +45,11 @@ describe("mainnet worker HTTP surface via Miniflare", () => {
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.state).toBe("fulfilled");
     expect(body.updatedAt).toBeTypeOf("string");
-    expect(body.transactionRef).toBeTypeOf("string");
+    expect(body.transactionReference).toBeTypeOf("string");
+    expect(body.result).toEqual({
+      contentType: "application/json",
+      body: { ok: true, service: "proof" },
+    });
     expect(JSON.stringify(body)).not.toContain(input.paymentIdentifier);
     expect(body).not.toHaveProperty("authCommitment");
     expect(body).not.toHaveProperty("operationToken");

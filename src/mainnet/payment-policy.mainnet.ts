@@ -75,6 +75,25 @@ export function validateBaseMainnetPaymentRequirements(
   return { ok: true, requirement };
 }
 
+export function createMainnetPaymentPolicy(
+  sellerAddress: string,
+): import("@x402/core/client").PaymentPolicy {
+  return (_version, requirements) =>
+    requirements.filter((requirement) =>
+      matchesBaseMainnetPaymentTerms(requirement, sellerAddress),
+    );
+}
+
+export const selectMainnetPaymentRequirement: import("@x402/core/client").SelectPaymentRequirements =
+  (_version, requirements) => {
+    if (requirements.length === 0) {
+      throw new Error(
+        "No payment requirement matched the allowed Base mainnet terms.",
+      );
+    }
+    return requirements[0]!;
+  };
+
 export function rejectNonMainnetPaymentTerms(
   requirement: PaymentRequirements,
   sellerAddress: string,

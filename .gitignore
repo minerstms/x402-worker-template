@@ -1,6 +1,7 @@
 node_modules/
 dist/
 dist-mainnet/
+dist-mainnet-mock-harness/
 src/generated/
 .wrangler/
 .dev.vars

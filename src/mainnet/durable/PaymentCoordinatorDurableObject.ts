@@ -13,6 +13,7 @@ import type {
   CoordinatorRpcRequest,
   CoordinatorRpcResponse,
   FailDefinitiveResult,
+  FulfilledStatusResult,
   LeaseAcquireResult,
   PaymentAttemptRow,
   PaymentAttemptState,
@@ -636,6 +637,31 @@ export class PaymentCoordinatorDurableObject extends DurableObject {
     return replay;
   }
 
+  private parseFulfilledStatusResult(
+    row: PaymentAttemptRow,
+  ): FulfilledStatusResult | undefined {
+    if (row.state !== "fulfilled") {
+      return undefined;
+    }
+    if (!row.cached_response_json || !row.cached_content_type) {
+      return undefined;
+    }
+    if (row.cached_content_type !== ALLOWED_STAGED_CONTENT_TYPE) {
+      return undefined;
+    }
+    if (row.cached_response_json.length > STAGED_RESPONSE_MAX_BYTES) {
+      return undefined;
+    }
+    try {
+      return {
+        contentType: row.cached_content_type,
+        body: JSON.parse(row.cached_response_json) as unknown,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   private getStatusByPaymentIdentifier(
     paymentIdentifier: string,
   ): PaymentStatusSnapshot | null {
@@ -650,11 +676,14 @@ export class PaymentCoordinatorDurableObject extends DurableObject {
       return null;
     }
 
+    const fulfilledResult = this.parseFulfilledStatusResult(row);
+
     return {
       state: row.state,
       updatedAt: row.updated_at,
       transactionHash: row.transaction_hash,
       expiresAt: row.expires_at,
+      ...(fulfilledResult ? { fulfilledResult } : {}),
     };
   }
 

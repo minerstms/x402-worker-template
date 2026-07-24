@@ -81,11 +81,17 @@ export type PaymentAttemptRow = {
   expires_at: string;
 };
 
+export type FulfilledStatusResult = {
+  contentType: string;
+  body: unknown;
+};
+
 export type PaymentStatusSnapshot = {
   state: PaymentAttemptState;
   updatedAt: string;
   transactionHash: string | null;
   expiresAt: string;
+  fulfilledResult?: FulfilledStatusResult;
 };
 
 export type CoordinatorRpcRequest =

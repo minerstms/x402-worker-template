@@ -1,7 +1,10 @@
 import type { Context } from "hono";
 /// <reference path="../../../worker-configuration.mainnet.d.ts" />
 import { coordinatorGetStatusByPaymentIdentifier } from "../durable/payment-coordinator-client.js";
-import type { PaymentAttemptState } from "../durable/payment-attempt-types.js";
+import type {
+  FulfilledStatusResult,
+  PaymentAttemptState,
+} from "../durable/payment-attempt-types.js";
 import { validatePaymentIdentifierForLookup } from "../idempotency/payment-identifier.js";
 
 export type SafePaymentStatusBody = {
@@ -9,7 +12,8 @@ export type SafePaymentStatusBody = {
   updatedAt?: string;
   canRetry?: boolean;
   needsFreshTerms?: boolean;
-  transactionRef?: string;
+  transactionReference?: string;
+  result?: FulfilledStatusResult;
 };
 
 const IN_PROGRESS_STATES: PaymentAttemptState[] = [
@@ -32,6 +36,7 @@ function buildStatusBody(
     state: PaymentAttemptState;
     updatedAt: string;
     transactionHash: string | null;
+    fulfilledResult?: FulfilledStatusResult;
   } | null,
 ): { status: number; body: SafePaymentStatusBody } {
   if (!snapshot) {
@@ -52,16 +57,19 @@ function buildStatusBody(
   }
 
   if (snapshot.state === "fulfilled") {
-    return {
-      status: 200,
-      body: {
-        state: "fulfilled",
-        updatedAt: snapshot.updatedAt,
-        transactionRef: snapshot.transactionHash
-          ? shortenTransactionRef(snapshot.transactionHash)
-          : undefined,
-      },
+    const body: SafePaymentStatusBody = {
+      state: "fulfilled",
+      updatedAt: snapshot.updatedAt,
+      canRetry: false,
+      needsFreshTerms: false,
+      transactionReference: snapshot.transactionHash
+        ? shortenTransactionRef(snapshot.transactionHash)
+        : undefined,
     };
+    if (snapshot.fulfilledResult) {
+      body.result = snapshot.fulfilledResult;
+    }
+    return { status: 200, body };
   }
 
   if (snapshot.state === "failed-definitive") {
@@ -71,6 +79,7 @@ function buildStatusBody(
         state: "failed-definitive",
         updatedAt: snapshot.updatedAt,
         needsFreshTerms: true,
+        canRetry: false,
       },
     };
   }
@@ -82,7 +91,7 @@ function buildStatusBody(
         state: "uncertain",
         updatedAt: snapshot.updatedAt,
         canRetry: false,
-        transactionRef: snapshot.transactionHash
+        transactionReference: snapshot.transactionHash
           ? shortenTransactionRef(snapshot.transactionHash)
           : undefined,
       },
@@ -94,6 +103,7 @@ function buildStatusBody(
     body: {
       state: "expired",
       needsFreshTerms: true,
+      canRetry: false,
     },
   };
 }
@@ -125,6 +135,7 @@ export function buildSafePaymentStatusBody(
     state: PaymentAttemptState;
     updatedAt: string;
     transactionHash: string | null;
+    fulfilledResult?: FulfilledStatusResult;
   } | null,
 ): SafePaymentStatusBody {
   return buildStatusBody(snapshot).body;
